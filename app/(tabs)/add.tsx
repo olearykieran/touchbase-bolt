@@ -1,33 +1,57 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Platform,
+  Modal,
+} from 'react-native';
 import { useState } from 'react';
 import { useContactStore } from '@/lib/store';
 import { router } from 'expo-router';
 import { UserPlus, Users } from 'lucide-react-native';
 import ContactPickerModal from '@/components/ContactPickerModal';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React from 'react';
 
 export default function AddContactScreen() {
-  const addContact = useContactStore(state => state.addContact);
-  const loading = useContactStore(state => state.loading);
-  const error = useContactStore(state => state.error);
+  const addContact = useContactStore((state) => state.addContact);
+  const loading = useContactStore((state) => state.loading);
+  const error = useContactStore((state) => state.error);
   const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     frequency: 'weekly',
+    birthday: undefined as Date | undefined,
   });
 
   const frequencies = ['daily', 'weekly', 'monthly', 'quarterly'];
 
   const handleSubmit = async () => {
-    await addContact(formData);
+    const submitData: any = { ...formData };
+    if (formData.birthday) {
+      submitData.birthday = formData.birthday.toISOString().split('T')[0];
+    } else {
+      delete submitData.birthday;
+    }
+    await addContact(submitData);
     if (!error) {
-      router.push('/(tabs)/');
+      router.push('/(tabs)/' as any);
     }
   };
 
-  const handleContactSelect = (contact: { name: string; email?: string; phone?: string }) => {
+  const handleContactSelect = (contact: {
+    name: string;
+    email?: string;
+    phone?: string;
+  }) => {
     setFormData({
       ...formData,
       name: contact.name,
@@ -39,14 +63,13 @@ export default function AddContactScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.form}>
-        {error && (
-          <Text style={styles.errorText}>{error}</Text>
-        )}
+        {error && <Text style={styles.errorText}>{error}</Text>}
 
         {Platform.OS !== 'web' && (
           <TouchableOpacity
             style={styles.contactPickerButton}
-            onPress={() => setShowContactPicker(true)}>
+            onPress={() => setShowContactPicker(true)}
+          >
             <Users size={24} color="#007AFF" />
             <Text style={styles.contactPickerText}>Add from Contacts</Text>
           </TouchableOpacity>
@@ -88,22 +111,38 @@ export default function AddContactScreen() {
                 styles.frequencyButton,
                 formData.frequency === freq && styles.frequencyButtonActive,
               ]}
-              onPress={() => setFormData({ ...formData, frequency: freq })}>
+              onPress={() => setFormData({ ...formData, frequency: freq })}
+            >
               <Text
                 style={[
                   styles.frequencyButtonText,
-                  formData.frequency === freq && styles.frequencyButtonTextActive,
-                ]}>
+                  formData.frequency === freq &&
+                    styles.frequencyButtonTextActive,
+                ]}
+              >
                 {freq.charAt(0).toUpperCase() + freq.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity 
+        <Text style={styles.label}>Birthday (optional)</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={{ color: formData.birthday ? '#000' : '#888' }}>
+            {formData.birthday
+              ? formData.birthday.toLocaleDateString()
+              : 'Select birthday (optional)'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={loading}>
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
@@ -120,6 +159,54 @@ export default function AddContactScreen() {
         onClose={() => setShowContactPicker(false)}
         onSelectContact={handleContactSelect}
       />
+
+      <Modal visible={showDatePicker} transparent={true} animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 16,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}
+            >
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={{ color: '#007AFF', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={{ fontWeight: '600', fontSize: 16 }}>
+                Select Birthday
+              </Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={{ color: '#007AFF', fontSize: 16 }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={formData.birthday || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                if (date) setFormData({ ...formData, birthday: date });
+                if (Platform.OS !== 'ios') setShowDatePicker(false);
+              }}
+              themeVariant="light"
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
