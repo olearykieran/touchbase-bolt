@@ -15,7 +15,7 @@ interface MessageRequest {
     frequency: string;
   };
   lastMessage?: string;
-  messageType?: 'default' | 'love' | 'gratitude' | 'custom';
+  messageType?: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday';
   customPrompt?: string;
 }
 
@@ -27,6 +27,8 @@ const getSystemPrompt = (messageType: string) => {
       return 'You are creating a simple list of 10 random things to be grateful for. Each item must be 5 words or less, starting with "I\'m grateful for..."';
     case 'custom':
       return 'You are writing a personalized message based on a specific prompt. Keep it natural and concise, limited to 4-5 sentences max.';
+    case 'birthday':
+      return 'You are writing a warm and cheerful birthday message. Keep it celebratory and personal, with a mix of well-wishes and appreciation. Limit it to 3-4 sentences max.';
     default:
       return 'You are writing a friendly catch-up message. Keep it casual and brief, limited to 2-3 sentences.';
   }
@@ -70,6 +72,18 @@ Guidelines:
 1. I'm grateful for warm sunshine
 2. I'm grateful for morning coffee
 etc.`;
+
+    case 'birthday':
+      return `Write a birthday message to ${contact.name}.
+${baseContext}
+
+Guidelines:
+- Make it warm and celebratory
+- Include well-wishes for the year ahead
+- Add a personal touch of appreciation
+- Limit to 3-4 sentences maximum
+- Keep it upbeat and positive
+- No long explanations`;
 
     case 'custom':
       return `Write a message to ${contact.name} based on this prompt: "${customPrompt}"

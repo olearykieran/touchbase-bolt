@@ -12,8 +12,10 @@ import {
   Platform,
   Alert,
   ActionSheetIOS,
+  Modal,
+  TextInput,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Phone,
   Mail,
@@ -30,8 +32,63 @@ import { supabase } from '@/lib/supabase';
 
 type LoadingState = {
   contactId: string;
-  messageType: 'default' | 'love' | 'gratitude' | 'custom';
+  messageType: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday';
 };
+
+// Move CustomPromptModal outside the main component
+const CustomPromptModal = ({
+  visible,
+  onClose,
+  onSubmit,
+  prompt,
+  onChangePrompt,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  prompt: string;
+  onChangePrompt: (text: string) => void;
+}) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="fade"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Custom Message</Text>
+        <Text style={styles.modalSubtitle}>
+          Enter a brief prompt for your message:
+        </Text>
+        <TextInput
+          style={styles.promptInput}
+          value={prompt}
+          onChangeText={onChangePrompt}
+          maxLength={50}
+          placeholder="Type your prompt here..."
+          autoFocus
+        />
+        <Text style={styles.characterCount}>{prompt.length}/50 characters</Text>
+        <View style={styles.modalButtons}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.cancelButton]}
+            onPress={onClose}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.generateButton]}
+            onPress={onSubmit}
+            disabled={!prompt}
+          >
+            <Text style={styles.generateButtonText}>Generate</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
 
 export default function ContactsScreen() {
   const {
@@ -45,6 +102,10 @@ export default function ContactsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
+  const [isCustomPromptModalVisible, setIsCustomPromptModalVisible] =
+    useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [tempPrompt, setTempPrompt] = useState('');
 
   useEffect(() => {
     fetchContacts();
@@ -83,10 +144,13 @@ export default function ContactsScreen() {
 
   const handleMessageGeneration = async (
     contact: any,
-    messageType: LoadingState['messageType'] = 'default'
+    messageType: LoadingState['messageType'] = 'default',
+    prompt?: string
   ) => {
     try {
       setLoadingState({ contactId: contact.id, messageType });
+
+      const customPromptToUse = prompt || customPrompt;
 
       const {
         data: { session },
@@ -111,7 +175,8 @@ export default function ContactsScreen() {
               frequency: contact.frequency,
             },
             messageType,
-            customPrompt: messageType === 'custom' ? customPrompt : undefined,
+            customPrompt:
+              messageType === 'custom' ? customPromptToUse : undefined,
           }),
         }
       );
@@ -183,26 +248,30 @@ export default function ContactsScreen() {
     }
   };
 
-  const handleCustomPrompt = (contact: any) => {
-    Alert.prompt(
-      'Custom Message',
-      'Enter a brief prompt for your message (25 chars max):',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Generate',
-          onPress: (prompt?: string) => {
-            if (prompt && prompt.length <= 25) {
-              setCustomPrompt(prompt);
-              handleMessageGeneration(contact, 'custom');
-            } else {
-              Alert.alert('Error', 'Prompt must be 25 characters or less');
-            }
-          },
-        },
-      ]
-    );
-  };
+  const handleCustomPrompt = useCallback((contact: any) => {
+    setSelectedContact(contact);
+    setTempPrompt('');
+    setIsCustomPromptModalVisible(true);
+  }, []);
+
+  const handleCustomPromptSubmit = useCallback(() => {
+    if (tempPrompt && selectedContact) {
+      handleMessageGeneration(selectedContact, 'custom', tempPrompt);
+      setIsCustomPromptModalVisible(false);
+      setSelectedContact(null);
+      setTempPrompt('');
+    }
+  }, [tempPrompt, selectedContact, handleMessageGeneration]);
+
+  const handleCloseModal = useCallback(() => {
+    setIsCustomPromptModalVisible(false);
+    setSelectedContact(null);
+    setTempPrompt('');
+  }, []);
+
+  const handlePromptChange = useCallback((text: string) => {
+    setTempPrompt(text);
+  }, []);
 
   const showMessageOptions = (contact: any) => {
     const options = [
@@ -211,6 +280,7 @@ export default function ContactsScreen() {
       'Regular Message',
       'Love Message',
       'Gratitude Message',
+      'Birthday Message',
       'Custom Message',
     ];
 
@@ -252,6 +322,9 @@ export default function ContactsScreen() {
               handleMessageGeneration(contact, 'gratitude');
               break;
             case 5:
+              handleMessageGeneration(contact, 'birthday');
+              break;
+            case 6:
               handleCustomPrompt(contact);
               break;
           }
@@ -277,6 +350,10 @@ export default function ContactsScreen() {
           {
             text: 'Gratitude Message',
             onPress: () => handleMessageGeneration(contact, 'gratitude'),
+          },
+          {
+            text: 'Birthday Message',
+            onPress: () => handleMessageGeneration(contact, 'birthday'),
           },
           {
             text: 'Custom Message',
@@ -391,6 +468,13 @@ export default function ContactsScreen() {
             <Text style={styles.emptyText}>No contacts yet. Add some!</Text>
           )
         }
+      />
+      <CustomPromptModal
+        visible={isCustomPromptModalVisible}
+        onClose={handleCloseModal}
+        onSubmit={handleCustomPromptSubmit}
+        prompt={tempPrompt}
+        onChangePrompt={handlePromptChange}
       />
     </View>
   );
@@ -527,6 +611,73 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: 'white',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
+  },
+  promptInput: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  characterCount: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'right',
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F2F2F7',
+  },
+  generateButton: {
+    backgroundColor: '#007AFF',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  generateButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

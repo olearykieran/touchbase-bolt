@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
@@ -17,8 +28,8 @@ export default function SignIn() {
         password,
       });
       if (error) throw error;
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -34,59 +45,68 @@ export default function SignIn() {
       });
       if (error) throw error;
       setError('Check your email for the confirmation link.');
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
-        {error && (
-          <Text style={styles.errorText}>{error}</Text>
-        )}
+          {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="username"
+            autoComplete="email"
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            textContentType="password"
+            autoComplete="password"
+          />
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSignIn}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSignIn}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.secondaryButton, loading && styles.buttonDisabled]}
-          onPress={handleSignUp}
-          disabled={loading}>
-          <Text style={styles.secondaryButtonText}>Create Account</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <TouchableOpacity
+            style={[styles.secondaryButton, loading && styles.buttonDisabled]}
+            onPress={handleSignUp}
+            disabled={loading}
+          >
+            <Text style={styles.secondaryButtonText}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
