@@ -23,15 +23,20 @@
         "backgroundColor": "#ffffff"
       },
       "infoPlist": {
-        "NSContactsUsageDescription": "Allow Keep Connect to access your contacts to easily add them to your contact list."
-      }
+        "NSContactsUsageDescription": "Allow Keep Connect to access your contacts.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.holygrailstudio.boltexponativewind"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["android.permission.READ_CONTACTS"]
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +54,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "f378a217-f470-4517-90db-7bb1b65a13a1"
+      }
     }
   }
 }
