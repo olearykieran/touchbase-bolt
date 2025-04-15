@@ -1,9 +1,27 @@
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { useState, useEffect } from 'react';
-import { Bell, Clock, Share2, HelpCircle, LogOut, Calendar } from 'lucide-react-native';
+import {
+  Bell,
+  Clock,
+  Share2,
+  HelpCircle,
+  LogOut,
+  Calendar,
+  Trash2,
+} from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
+import React from 'react';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -19,12 +37,12 @@ async function registerForPushNotificationsAsync() {
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-  
+
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-  
+
   if (finalStatus !== 'granted') {
     return null;
   }
@@ -32,7 +50,7 @@ async function registerForPushNotificationsAsync() {
   const token = await Notifications.getExpoPushTokenAsync({
     projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
   });
-  
+
   return token;
 }
 
@@ -68,32 +86,92 @@ async function scheduleNotificationsForContacts() {
           },
         });
       }
+
+      // --- Birthday Notification Logic ---
+      if (contact.birthday) {
+        const birthday = new Date(contact.birthday);
+        // Set year to this year
+        const nowYear = now.getFullYear();
+        let nextBirthday = new Date(birthday);
+        nextBirthday.setFullYear(nowYear);
+        // If birthday this year has already passed, set to next year
+        if (nextBirthday < now) {
+          nextBirthday.setFullYear(nowYear + 1);
+        }
+        // Only schedule if nextBirthday is in the future
+        if (nextBirthday > now) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `It's ${contact.name}'s birthday! 🎉`,
+              body: `Reach out and wish them a happy birthday!`,
+              data: { contactId: contact.id, birthday: true },
+            },
+            trigger: {
+              date: nextBirthday,
+            },
+          });
+        }
+      }
+      // --- End Birthday Notification Logic ---
     }
   } catch (error) {
     console.error('Error scheduling notifications:', error);
   }
 }
 
+async function sendTestNotification() {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      return;
+    }
+    const now = new Date();
+    const triggerDate = new Date(now.getTime() + 10 * 1000); // 10 seconds from now
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Test Notification',
+        body: 'This is a test notification scheduled 10 seconds ago.',
+        data: { test: true },
+      },
+      trigger: {
+        date: triggerDate,
+      },
+    });
+  } catch (error) {
+    // Optionally, you can handle errors here
+  }
+}
+
 export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(true);
-  const [weekendReminders, setWeekendReminders] = useState(false);
-  const [morningReminders, setMorningReminders] = useState(true);
   const [notificationStatus, setNotificationStatus] = useState<string>('');
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
       checkNotificationPermissions();
-      
+
       // Listen for notification responses
-      const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-        const contactId = response.notification.request.content.data.contactId;
-        if (contactId) {
-          router.push('/(tabs)/');
-        }
-      });
+      const responseSubscription =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          const contactId =
+            response.notification.request.content.data.contactId;
+          if (contactId) {
+            router.push('/');
+          }
+        });
+
+      // Listen for notification receipt (foreground)
+      const receivedSubscription =
+        Notifications.addNotificationReceivedListener((notification) => {
+          Alert.alert(
+            notification.request.content.title || 'Notification',
+            notification.request.content.body || ''
+          );
+        });
 
       return () => {
-        subscription.remove();
+        responseSubscription.remove();
+        receivedSubscription.remove();
       };
     }
   }, []);
@@ -117,18 +195,12 @@ export default function SettingsScreen() {
       await scheduleNotificationsForContacts();
     }
 
-    switch(setting) {
+    switch (setting) {
       case 'notifications':
         setNotifications(value);
         if (!value && Platform.OS !== 'web') {
           await Notifications.cancelAllScheduledNotificationsAsync();
         }
-        break;
-      case 'weekendReminders':
-        setWeekendReminders(value);
-        break;
-      case 'morningReminders':
-        setMorningReminders(value);
         break;
     }
   };
@@ -138,6 +210,58 @@ export default function SettingsScreen() {
       await Notifications.cancelAllScheduledNotificationsAsync();
     }
     await supabase.auth.signOut();
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account and all your contacts? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Get current session for auth
+              const {
+                data: { session },
+                error: sessionError,
+              } = await supabase.auth.getSession();
+              if (sessionError || !session)
+                throw new Error('Please sign in again.');
+
+              // Call the edge function to delete user and contacts
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-user`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to delete account.');
+              }
+
+              // Log out and redirect
+              await supabase.auth.signOut();
+              router.replace('/');
+            } catch (error: any) {
+              Alert.alert(
+                'Error',
+                error.message || 'Failed to delete account.'
+              );
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -151,41 +275,13 @@ export default function SettingsScreen() {
           </View>
           <Switch
             value={notifications}
-            onValueChange={(value) => toggleNotificationSetting('notifications', value)}
+            onValueChange={(value) =>
+              toggleNotificationSetting('notifications', value)
+            }
             trackColor={{ false: '#767577', true: '#81b0ff' }}
             thumbColor={notifications ? '#007AFF' : '#f4f3f4'}
           />
         </View>
-        
-        {notifications && (
-          <>
-            <View style={styles.setting}>
-              <View style={styles.settingInfo}>
-                <Calendar size={24} color="#007AFF" />
-                <Text style={styles.settingText}>Weekend Reminders</Text>
-              </View>
-              <Switch
-                value={weekendReminders}
-                onValueChange={(value) => toggleNotificationSetting('weekendReminders', value)}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={weekendReminders ? '#007AFF' : '#f4f3f4'}
-              />
-            </View>
-            
-            <View style={styles.setting}>
-              <View style={styles.settingInfo}>
-                <Clock size={24} color="#007AFF" />
-                <Text style={styles.settingText}>Morning Reminders</Text>
-              </View>
-              <Switch
-                value={morningReminders}
-                onValueChange={(value) => toggleNotificationSetting('morningReminders', value)}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={morningReminders ? '#007AFF' : '#f4f3f4'}
-              />
-            </View>
-          </>
-        )}
       </View>
 
       <View style={styles.section}>
@@ -209,11 +305,39 @@ export default function SettingsScreen() {
           <LogOut size={24} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
+        {/* Delete Account Button */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+        >
+          <Trash2 size={24} color="#FF3B30" />
+          <Text style={styles.deleteText}>Delete Account</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.version}>Version 1.0.0</Text>
       </View>
+
+      {/* Test Notification Button - Only in development mode */}
+      {process.env.NODE_ENV === 'development' && (
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#007AFF',
+              borderRadius: 8,
+              padding: 16,
+              alignItems: 'center',
+              marginTop: 16,
+            }}
+            onPress={sendTestNotification}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+              Send Test Notification
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -258,6 +382,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   signOutText: {
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#FF3B30',
+    fontWeight: '600',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  deleteText: {
     fontSize: 16,
     marginLeft: 12,
     color: '#FF3B30',

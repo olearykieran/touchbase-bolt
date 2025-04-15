@@ -27,8 +27,16 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import { useContactStore } from '@/lib/store';
-import { formatDistanceToNow } from 'date-fns';
+import {
+  formatDistanceToNow,
+  format,
+  differenceInCalendarDays,
+  addYears,
+  isBefore,
+  parseISO,
+} from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import React from 'react';
 
 type LoadingState = {
   contactId: string;
@@ -89,6 +97,21 @@ const CustomPromptModal = ({
     </View>
   </Modal>
 );
+
+// Helper to calculate days until next birthday
+function getBirthdayCountdown(birthdayStr: string | undefined): number | null {
+  if (!birthdayStr) return null;
+  const today = new Date();
+  let birthday = parseISO(birthdayStr);
+  // Set birthday to this year
+  birthday.setFullYear(today.getFullYear());
+  // If birthday already passed this year, use next year
+  if (isBefore(birthday, today)) {
+    birthday = addYears(birthday, 1);
+  }
+  const days = differenceInCalendarDays(birthday, today);
+  return days;
+}
 
 export default function ContactsScreen() {
   const {
@@ -198,7 +221,7 @@ export default function ContactsScreen() {
       if (Platform.OS === 'web') {
         await Share.share({
           title: 'Message',
-          text: message,
+          message,
         });
       } else {
         if (contact.phone) {
@@ -369,7 +392,7 @@ export default function ContactsScreen() {
     }
   };
 
-  const renderContact = ({ item }) => (
+  const renderContact = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.contactCard}>
       <View style={styles.contactInfo}>
         <View style={styles.contactHeader}>
@@ -382,7 +405,24 @@ export default function ContactsScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.contactDetails}>
-          {item.phone && <Text style={styles.contactText}>{item.phone}</Text>}
+          {item.phone && (
+            <Text style={styles.contactText}>
+              {item.phone}
+              {item.birthday && (
+                <Text style={styles.birthdayText}>
+                  {`  🎂 ${format(parseISO(item.birthday), 'MMM d')}`}
+                  {(() => {
+                    const days = getBirthdayCountdown(item.birthday);
+                    if (days === null) return '';
+                    if (days === 0) return ' (Today!)';
+                    if (days === 1) return ' (Tomorrow)';
+                    if (days > 0) return ` (${days} days left)`;
+                    return '';
+                  })()}
+                </Text>
+              )}
+            </Text>
+          )}
           {item.email && <Text style={styles.contactText}>{item.email}</Text>}
         </View>
         <View style={styles.actionRow}>
@@ -679,5 +719,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  birthdayText: {
+    color: '#FF9500',
+    fontSize: 13,
+    marginLeft: 4,
   },
 });

@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Touch Base",
-    "slug": "touch-base",
-    "version": "1.0.0",
+    "slug": "bolt-expo-nativewind",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -60,6 +60,7 @@
       "eas": {
         "projectId": "f378a217-f470-4517-90db-7bb1b65a13a1"
       }
-    }
+    },
+    "newArchEnabled": true
   }
 }

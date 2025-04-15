@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
@@ -45,9 +46,14 @@ export default function SignIn() {
         password,
       });
       if (error) throw error;
-      setError('Check your email for the confirmation link.');
+      setError(null);
+      console.log(
+        'Sign-up successful. Check your email for the confirmation link.'
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMsg);
+      console.log('Sign-up error:', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,11 @@ export default function SignIn() {
               <Text style={styles.secondaryButtonText}>Create Account</Text>
             </TouchableOpacity>
           </View>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -186,5 +197,12 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  logo: {
+    width: 160,
+    height: 80,
+    alignSelf: 'center',
+    marginTop: 32,
+    marginBottom: 16,
   },
 });
