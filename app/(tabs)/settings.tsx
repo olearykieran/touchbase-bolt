@@ -7,6 +7,8 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Share,
+  Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import {
@@ -22,6 +24,7 @@ import { supabase } from '@/lib/supabase';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import React from 'react';
+import { useTheme, ThemeType } from '../../components/ThemeProvider';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -143,6 +146,7 @@ async function sendTestNotification() {
 }
 
 export default function SettingsScreen() {
+  const { theme, colorScheme, setTheme, colors } = useTheme();
   const [notifications, setNotifications] = useState(true);
   const [notificationStatus, setNotificationStatus] = useState<string>('');
 
@@ -265,47 +269,130 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Notifications
+        </Text>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
-            <Bell size={24} color="#007AFF" />
-            <Text style={styles.settingText}>Enable Notifications</Text>
+            <Bell size={24} color={colors.accent} />
+            <Text style={[styles.settingText, { color: colors.text }]}>
+              Enable Notifications
+            </Text>
           </View>
           <Switch
             value={notifications}
             onValueChange={(value) =>
               toggleNotificationSetting('notifications', value)
             }
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={notifications ? '#007AFF' : '#f4f3f4'}
+            trackColor={{ false: '#767577', true: colors.accent + '33' }}
+            thumbColor={notifications ? colors.accent : '#f4f3f4'}
           />
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>General</Text>
-        <TouchableOpacity style={styles.setting}>
+      {/* Theme Section */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Appearance
+        </Text>
+        <View style={styles.setting}>
+          <Text style={[styles.settingText, { color: colors.text }]}>
+            Theme
+          </Text>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginTop: 8,
+          }}
+        >
+          {(['system', 'light', 'dark'] as ThemeType[]).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={{
+                flex: 1,
+                marginHorizontal: 4,
+                backgroundColor: theme === option ? colors.accent : colors.card,
+                borderRadius: 8,
+                padding: 12,
+                alignItems: 'center',
+                borderWidth: theme === option ? 0 : 1,
+                borderColor: colors.border,
+              }}
+              onPress={() => setTheme(option)}
+            >
+              <Text
+                style={{
+                  color: theme === option ? '#fff' : colors.text,
+                  fontWeight: '600',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {option === 'system'
+                  ? 'System Default'
+                  : option.charAt(0).toUpperCase() + option.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          General
+        </Text>
+        <TouchableOpacity
+          style={styles.setting}
+          onPress={async () => {
+            try {
+              await Share.share({
+                title: 'TouchBase',
+                message:
+                  'Stay in touch with the people who matter most! Download TouchBase: https://apps.apple.com/app/id6501184872',
+                url: 'https://apps.apple.com/app/id6501184872',
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Unable to share the app.');
+            }
+          }}
+        >
           <View style={styles.settingInfo}>
-            <Share2 size={24} color="#007AFF" />
-            <Text style={styles.settingText}>Share App</Text>
+            <Share2 size={24} color={colors.accent} />
+            <Text style={[styles.settingText, { color: colors.text }]}>
+              Share App
+            </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.setting}>
+        <TouchableOpacity
+          style={styles.setting}
+          onPress={() => {
+            Linking.openURL(
+              'https://olearykieran.github.io/touchbase-bolt/support.html'
+            );
+          }}
+        >
           <View style={styles.settingInfo}>
-            <HelpCircle size={24} color="#007AFF" />
-            <Text style={styles.settingText}>Help & Support</Text>
+            <HelpCircle size={24} color={colors.accent} />
+            <Text style={[styles.settingText, { color: colors.text }]}>
+              Help & Support
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={24} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
-        {/* Delete Account Button */}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
@@ -315,13 +402,15 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.version}>Version 1.0.0</Text>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.version, { color: colors.secondaryText }]}>
+          Version 1.0.0
+        </Text>
       </View>
 
       {/* Test Notification Button - Only in development mode */}
       {process.env.NODE_ENV === 'development' && (
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={{
               backgroundColor: '#007AFF',

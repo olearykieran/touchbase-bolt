@@ -16,6 +16,7 @@ import { UserPlus, Users } from 'lucide-react-native';
 import ContactPickerModal from '@/components/ContactPickerModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
+import { useTheme } from '../../components/ThemeProvider';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
@@ -23,6 +24,7 @@ export default function AddContactScreen() {
   const error = useContactStore((state) => state.error);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { colors } = useTheme();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -61,31 +63,48 @@ export default function AddContactScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.form}>
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && (
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+        )}
 
         {Platform.OS !== 'web' && (
           <TouchableOpacity
-            style={styles.contactPickerButton}
+            style={[
+              styles.contactPickerButton,
+              { backgroundColor: colors.card },
+            ]}
             onPress={() => setShowContactPicker(true)}
           >
-            <Users size={24} color="#007AFF" />
-            <Text style={styles.contactPickerText}>Add from Contacts</Text>
+            <Users size={24} color={colors.accent} />
+            <Text style={[styles.contactPickerText, { color: colors.accent }]}>
+              Add from Contacts
+            </Text>
           </TouchableOpacity>
         )}
 
-        <Text style={styles.label}>Name</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Name</Text>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, color: colors.text },
+          ]}
           value={formData.name}
           onChangeText={(text) => setFormData({ ...formData, name: text })}
           placeholder="Enter name"
         />
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Email</Text>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, color: colors.text },
+          ]}
           value={formData.email}
           onChangeText={(text) => setFormData({ ...formData, email: text })}
           placeholder="Enter email"
@@ -93,31 +112,38 @@ export default function AddContactScreen() {
           autoCapitalize="none"
         />
 
-        <Text style={styles.label}>Phone</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Phone</Text>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, color: colors.text },
+          ]}
           value={formData.phone}
           onChangeText={(text) => setFormData({ ...formData, phone: text })}
           placeholder="Enter phone number"
           keyboardType="phone-pad"
         />
 
-        <Text style={styles.label}>Contact Frequency</Text>
+        <Text style={[styles.label, { color: colors.text }]}>
+          Contact Frequency
+        </Text>
         <View style={styles.frequencyButtons}>
           {frequencies.map((freq) => (
             <TouchableOpacity
               key={freq}
               style={[
                 styles.frequencyButton,
-                formData.frequency === freq && styles.frequencyButtonActive,
+                {
+                  backgroundColor:
+                    formData.frequency === freq ? colors.accent : colors.border,
+                },
               ]}
               onPress={() => setFormData({ ...formData, frequency: freq })}
             >
               <Text
                 style={[
                   styles.frequencyButtonText,
-                  formData.frequency === freq &&
-                    styles.frequencyButtonTextActive,
+                  { color: formData.frequency === freq ? '#fff' : colors.text },
                 ]}
               >
                 {freq.charAt(0).toUpperCase() + freq.slice(1)}
@@ -126,12 +152,18 @@ export default function AddContactScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>Birthday (optional)</Text>
+        <Text style={[styles.label, { color: colors.text }]}>
+          Birthday (optional)
+        </Text>
         <TouchableOpacity
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.card }]}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text style={{ color: formData.birthday ? '#000' : '#888' }}>
+          <Text
+            style={{
+              color: formData.birthday ? colors.text : colors.secondaryText,
+            }}
+          >
             {formData.birthday
               ? formData.birthday.toLocaleDateString()
               : 'Select birthday (optional)'}
@@ -139,16 +171,22 @@ export default function AddContactScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            { backgroundColor: colors.accent },
+            loading && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <UserPlus size={24} color="white" />
-              <Text style={styles.submitButtonText}>Add Contact</Text>
+              <UserPlus size={24} color="#fff" />
+              <Text style={[styles.submitButtonText, { color: '#fff' }]}>
+                Add Contact
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -170,7 +208,7 @@ export default function AddContactScreen() {
         >
           <View
             style={{
-              backgroundColor: '#fff',
+              backgroundColor: colors.card,
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               padding: 16,
@@ -185,13 +223,17 @@ export default function AddContactScreen() {
               }}
             >
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={{ color: '#007AFF', fontSize: 16 }}>Cancel</Text>
+                <Text style={{ color: colors.accent, fontSize: 16 }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
-              <Text style={{ fontWeight: '600', fontSize: 16 }}>
+              <Text
+                style={{ fontWeight: '600', fontSize: 16, color: colors.text }}
+              >
                 Select Birthday
               </Text>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={{ color: '#007AFF', fontSize: 16 }}>Done</Text>
+                <Text style={{ color: colors.accent, fontSize: 16 }}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker

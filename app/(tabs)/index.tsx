@@ -37,6 +37,7 @@ import {
 } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import React from 'react';
+import { useTheme } from '../../components/ThemeProvider';
 
 type LoadingState = {
   contactId: string;
@@ -129,6 +130,7 @@ export default function ContactsScreen() {
     useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [tempPrompt, setTempPrompt] = useState('');
+  const { colors } = useTheme();
 
   useEffect(() => {
     fetchContacts();
@@ -393,10 +395,12 @@ export default function ContactsScreen() {
   };
 
   const renderContact = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.contactCard}>
+    <TouchableOpacity
+      style={[styles.contactCard, { backgroundColor: colors.card }]}
+    >
       <View style={styles.contactInfo}>
         <View style={styles.contactHeader}>
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleDelete(item)}
@@ -406,7 +410,7 @@ export default function ContactsScreen() {
         </View>
         <View style={styles.contactDetails}>
           {item.phone && (
-            <Text style={styles.contactText}>
+            <Text style={[styles.contactText, { color: colors.secondaryText }]}>
               {item.phone}
               {item.birthday && (
                 <Text style={styles.birthdayText}>
@@ -423,31 +427,41 @@ export default function ContactsScreen() {
               )}
             </Text>
           )}
-          {item.email && <Text style={styles.contactText}>{item.email}</Text>}
+          {item.email && (
+            <Text style={[styles.contactText, { color: colors.secondaryText }]}>
+              {item.email}
+            </Text>
+          )}
         </View>
         <View style={styles.actionRow}>
           <View style={styles.buttonContainer}>
             <View style={styles.primaryActions}>
               {item.phone && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colors.background },
+                  ]}
                   onPress={() => handlePhonePress(item.phone)}
                 >
-                  <Phone size={20} color="#007AFF" />
+                  <Phone size={20} color={colors.accent} />
                 </TouchableOpacity>
               )}
               {item.email && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colors.background },
+                  ]}
                   onPress={() => handleEmailPress(item.email)}
                 >
-                  <Mail size={20} color="#007AFF" />
+                  <Mail size={20} color={colors.accent} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 style={[
                   styles.messageButton,
-                  loadingState && styles.messageButtonGenerating,
+                  { backgroundColor: colors.accent },
                 ]}
                 onPress={() => showMessageOptions(item)}
                 disabled={loadingState !== null}
@@ -467,8 +481,10 @@ export default function ContactsScreen() {
           </View>
 
           <View style={styles.nextContact}>
-            <Clock size={16} color="#666" />
-            <Text style={styles.nextContactText}>
+            <Clock size={16} color={colors.secondaryText} />
+            <Text
+              style={[styles.nextContactText, { color: colors.secondaryText }]}
+            >
               Next:{' '}
               {formatDistanceToNow(new Date(item.nextContact), {
                 addSuffix: true,
@@ -483,16 +499,19 @@ export default function ContactsScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchContacts}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.accent }]}
+          onPress={fetchContacts}
+        >
+          <Text style={[styles.retryButtonText, { color: '#fff' }]}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={contacts}
         renderItem={renderContact}
@@ -503,9 +522,11 @@ export default function ContactsScreen() {
         }
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator style={styles.loader} color="#007AFF" />
+            <ActivityIndicator style={styles.loader} color={colors.accent} />
           ) : (
-            <Text style={styles.emptyText}>No contacts yet. Add some!</Text>
+            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
+              No contacts yet. Add some!
+            </Text>
           )
         }
       />
@@ -594,7 +615,6 @@ const styles = StyleSheet.create({
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
+import { ThemeProvider } from '../components/ThemeProvider';
 
 function useProtectedRoute(user: any) {
   const segments = useSegments();
@@ -76,38 +77,40 @@ export default function RootLayout() {
   useProtectedRoute(user);
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-      </Stack>
-      <StatusBar style="auto" />
-      {/* Notification Permission Modal for iOS */}
-      <Modal
-        visible={showNotifModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowNotifModal(false)}
-      >
-        <View style={modalStyles.overlay}>
-          <View style={modalStyles.modalBox}>
-            <Text style={modalStyles.title}>Enable Notifications</Text>
-            <Text style={modalStyles.body}>
-              We use notifications to remind you to reach out to your contacts
-              and celebrate birthdays. Please enable notifications to stay
-              connected!
-            </Text>
-            <TouchableOpacity
-              style={modalStyles.button}
-              onPress={handleRequestNotifications}
-            >
-              <Text style={modalStyles.buttonText}>Enable Notifications</Text>
-            </TouchableOpacity>
+    <ThemeProvider>
+      <>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+        </Stack>
+        <StatusBar style="auto" />
+        {/* Notification Permission Modal for iOS */}
+        <Modal
+          visible={showNotifModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowNotifModal(false)}
+        >
+          <View style={modalStyles.overlay}>
+            <View style={modalStyles.modalBox}>
+              <Text style={modalStyles.title}>Enable Notifications</Text>
+              <Text style={modalStyles.body}>
+                We use notifications to remind you to reach out to your contacts
+                and celebrate birthdays. Please enable notifications to stay
+                connected!
+              </Text>
+              <TouchableOpacity
+                style={modalStyles.button}
+                onPress={handleRequestNotifications}
+              >
+                <Text style={modalStyles.buttonText}>Enable Notifications</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </>
+        </Modal>
+      </>
+    </ThemeProvider>
   );
 }
 
@@ -138,7 +141,7 @@ const modalStyles = StyleSheet.create({
     color: '#333',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#77dd77',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,

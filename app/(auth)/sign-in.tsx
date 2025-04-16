@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,36 @@ import {
   Platform,
   ScrollView,
   Image,
+  Animated,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
+import { Asset } from 'expo-asset';
 
-export default function SignIn() {
+function SignInInner() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoReady, setLogoReady] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { colors } = useTheme();
+
+  useEffect(() => {
+    Asset.loadAsync(require('../../assets/images/icon.png')).then(() =>
+      setLogoReady(true)
+    );
+  }, []);
+
+  useEffect(() => {
+    if (logoReady) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [logoReady]);
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -63,41 +85,56 @@ export default function SignIn() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.formContainer}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
-
+          <View
+            style={[styles.formContainer, { backgroundColor: colors.card }]}
+          >
+            <Text style={[styles.title, { color: colors.text }]}>
+              Welcome Back
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+              Sign in to continue
+            </Text>
             {error && <Text style={styles.errorText}>{error}</Text>}
-
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.background, color: colors.text },
+              ]}
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
-              textContentType="username"
+              textContentType="emailAddress"
               autoComplete="email"
+              autoCorrect={false}
+              placeholderTextColor={colors.secondaryText}
             />
-
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.background, color: colors.text },
+              ]}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               textContentType="password"
               autoComplete="password"
+              placeholderTextColor={colors.secondaryText}
             />
-
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[
+                styles.button,
+                { backgroundColor: colors.accent },
+                loading && styles.buttonDisabled,
+              ]}
               onPress={handleSignIn}
               disabled={loading}
             >
@@ -107,23 +144,54 @@ export default function SignIn() {
                 <Text style={styles.buttonText}>Sign In</Text>
               )}
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.secondaryButton, loading && styles.buttonDisabled]}
               onPress={handleSignUp}
               disabled={loading}
             >
-              <Text style={styles.secondaryButtonText}>Create Account</Text>
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.accent }]}
+              >
+                Create Account
+              </Text>
             </TouchableOpacity>
           </View>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logoContainer}>
+            {!logoReady ? (
+              <ActivityIndicator
+                size="large"
+                color={colors.accent}
+                style={{ marginVertical: 32 }}
+              />
+            ) : (
+              <>
+                <Animated.Image
+                  source={require('../../assets/images/icon.png')}
+                  style={[styles.logo, { opacity: fadeAnim }]}
+                  resizeMode="contain"
+                />
+                <Animated.Text
+                  style={[
+                    styles.appName,
+                    { color: colors.accent, opacity: fadeAnim },
+                  ]}
+                >
+                  TouchBase
+                </Animated.Text>
+              </>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <ThemeProvider>
+      <SignInInner />
+    </ThemeProvider>
   );
 }
 
@@ -146,7 +214,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    marginTop: 64,
+    marginTop: 160,
   },
   title: {
     fontSize: 24,
@@ -169,7 +237,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3dc0dc',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -189,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#007AFF',
+    color: '#3dc0dc',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -198,11 +266,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 16,
+  },
   logo: {
     width: 160,
     height: 80,
     alignSelf: 'center',
-    marginTop: 32,
-    marginBottom: 16,
+    marginTop: 0,
+    marginBottom: 8,
+  },
+  appName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#3dc0dc',
+    marginTop: 0,
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 1.2,
   },
 });

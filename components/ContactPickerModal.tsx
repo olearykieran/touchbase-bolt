@@ -57,10 +57,10 @@ export default function ContactPickerModal({
       });
 
       const filteredContacts = data
-        .filter(contact => 
+        .filter((contact) =>
           contact.name?.toLowerCase().includes(query.toLowerCase())
         )
-        .map(contact => ({
+        .map((contact) => ({
           id: contact.id,
           name: contact.name || 'No Name',
           email: contact.emails?.[0]?.email,
@@ -92,7 +92,8 @@ export default function ContactPickerModal({
       onPress={() => {
         onSelectContact(item);
         onClose();
-      }}>
+      }}
+    >
       <View style={styles.contactInfo}>
         <Text style={styles.contactName}>{item.name}</Text>
         <View style={styles.contactDetails}>
@@ -118,7 +119,8 @@ export default function ContactPickerModal({
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
@@ -144,7 +146,7 @@ export default function ContactPickerModal({
             </View>
           ) : loading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#19e27c" />
             </View>
           ) : contacts.length === 0 ? (
             <View style={styles.centerContainer}>
@@ -159,7 +161,7 @@ export default function ContactPickerModal({
             <FlatList
               data={contacts}
               renderItem={renderContact}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
             />
           )}
