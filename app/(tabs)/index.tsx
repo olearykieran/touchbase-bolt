@@ -38,6 +38,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import React from 'react';
 import { useTheme } from '../../components/ThemeProvider';
+import EditContactModal from '../../components/EditContactModal';
 
 type LoadingState = {
   contactId: string;
@@ -130,6 +131,10 @@ export default function ContactsScreen() {
     useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [tempPrompt, setTempPrompt] = useState('');
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(
+    null
+  );
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -298,6 +303,11 @@ export default function ContactsScreen() {
     setTempPrompt(text);
   }, []);
 
+  const handleEditPress = (contactId: string) => {
+    setSelectedContactId(contactId);
+    setIsEditModalVisible(true);
+  };
+
   const showMessageOptions = (contact: any) => {
     const options = [
       'Cancel',
@@ -400,13 +410,30 @@ export default function ContactsScreen() {
     >
       <View style={styles.contactInfo}>
         <View style={styles.contactHeader}>
-          <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDelete(item)}
+          <Text
+            style={[
+              styles.name,
+              { color: colors.text, flex: 1, marginRight: 8 },
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
-            <Trash2 size={20} color="#FF3B30" />
-          </TouchableOpacity>
+            {item.name}
+          </Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => handleEditPress(item.id)}
+            >
+              <PenSquare size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDelete(item)}
+            >
+              <Trash2 size={20} color="#FF3B30" />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.contactDetails}>
           {item.phone && (
@@ -536,6 +563,15 @@ export default function ContactsScreen() {
         onSubmit={handleCustomPromptSubmit}
         prompt={tempPrompt}
         onChangePrompt={handlePromptChange}
+      />
+      <EditContactModal
+        visible={isEditModalVisible}
+        onClose={() => {
+          setIsEditModalVisible(false);
+          setSelectedContactId(null);
+        }}
+        contactId={selectedContactId}
+        onContactUpdated={fetchContacts}
       />
     </View>
   );
@@ -744,5 +780,13 @@ const styles = StyleSheet.create({
     color: '#FF9500',
     fontSize: 13,
     marginLeft: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    padding: 8,
   },
 });

@@ -23,8 +23,10 @@ export default function AddContactScreen() {
   const loading = useContactStore((state) => state.loading);
   const error = useContactStore((state) => state.error);
   const [showContactPicker, setShowContactPicker] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const { colors } = useTheme();
+  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
+  const [showFirstContactDatePicker, setShowFirstContactDatePicker] =
+    useState(false);
+  const { colors, colorScheme } = useTheme();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,17 +34,27 @@ export default function AddContactScreen() {
     phone: '',
     frequency: 'weekly',
     birthday: undefined as Date | undefined,
+    firstContactDate: undefined as Date | undefined,
   });
 
   const frequencies = ['daily', 'weekly', 'monthly', 'quarterly'];
 
   const handleSubmit = async () => {
-    const submitData: any = { ...formData };
+    const submitData: any = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      frequency: formData.frequency,
+    };
     if (formData.birthday) {
       submitData.birthday = formData.birthday.toISOString().split('T')[0];
-    } else {
-      delete submitData.birthday;
     }
+    if (formData.firstContactDate) {
+      submitData.firstContactDate = formData.firstContactDate;
+    }
+
+    console.log('Submitting contact data:', submitData);
+
     await addContact(submitData);
     if (!error) {
       router.push('/(tabs)/' as any);
@@ -157,7 +169,7 @@ export default function AddContactScreen() {
         </Text>
         <TouchableOpacity
           style={[styles.input, { backgroundColor: colors.card }]}
-          onPress={() => setShowDatePicker(true)}
+          onPress={() => setShowBirthdayPicker(true)}
         >
           <Text
             style={{
@@ -167,6 +179,32 @@ export default function AddContactScreen() {
             {formData.birthday
               ? formData.birthday.toLocaleDateString()
               : 'Select birthday (optional)'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.label, { color: colors.text }]}>
+          First Reminder (Optional)
+        </Text>
+        <TouchableOpacity
+          style={[styles.input, { backgroundColor: colors.card }]}
+          onPress={() => setShowFirstContactDatePicker(true)}
+        >
+          <Text
+            style={{
+              color: formData.firstContactDate
+                ? colors.text
+                : colors.secondaryText,
+            }}
+          >
+            {formData.firstContactDate
+              ? formData.firstContactDate.toLocaleString([], {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+              : 'Default (Based on Frequency)'}
           </Text>
         </TouchableOpacity>
 
@@ -198,7 +236,11 @@ export default function AddContactScreen() {
         onSelectContact={handleContactSelect}
       />
 
-      <Modal visible={showDatePicker} transparent={true} animationType="slide">
+      <Modal
+        visible={showBirthdayPicker}
+        transparent={true}
+        animationType="slide"
+      >
         <View
           style={{
             flex: 1,
@@ -222,7 +264,7 @@ export default function AddContactScreen() {
                 marginBottom: 8,
               }}
             >
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <TouchableOpacity onPress={() => setShowBirthdayPicker(false)}>
                 <Text style={{ color: colors.accent, fontSize: 16 }}>
                   Cancel
                 </Text>
@@ -232,7 +274,7 @@ export default function AddContactScreen() {
               >
                 Select Birthday
               </Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <TouchableOpacity onPress={() => setShowBirthdayPicker(false)}>
                 <Text style={{ color: colors.accent, fontSize: 16 }}>Done</Text>
               </TouchableOpacity>
             </View>
@@ -241,10 +283,73 @@ export default function AddContactScreen() {
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, date) => {
+                setShowBirthdayPicker(Platform.OS === 'ios');
                 if (date) setFormData({ ...formData, birthday: date });
-                if (Platform.OS !== 'ios') setShowDatePicker(false);
               }}
-              themeVariant="light"
+              themeVariant={colorScheme}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showFirstContactDatePicker}
+        transparent={true}
+        animationType="slide"
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 16,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => setShowFirstContactDatePicker(false)}
+              >
+                <Text style={{ color: colors.accent, fontSize: 16 }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text
+                style={{ fontWeight: '600', fontSize: 16, color: colors.text }}
+              >
+                First Reminder Time
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowFirstContactDatePicker(false)}
+              >
+                <Text style={{ color: colors.accent, fontSize: 16 }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={formData.firstContactDate || new Date()}
+              mode="datetime"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowFirstContactDatePicker(Platform.OS === 'ios');
+                if (date) {
+                  setFormData({ ...formData, firstContactDate: date });
+                }
+              }}
+              themeVariant={colorScheme}
+              minimumDate={new Date()}
             />
           </View>
         </View>

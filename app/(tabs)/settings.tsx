@@ -25,125 +25,20 @@ import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import React from 'react';
 import { useTheme, ThemeType } from '../../components/ThemeProvider';
+import {
+  registerForPushNotificationsAsync,
+  scheduleNotificationsForContacts,
+  sendTestNotification,
+} from '../../lib/notificationUtils';
 
 // Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-async function registerForPushNotificationsAsync() {
-  if (Platform.OS === 'web') return null;
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    return null;
-  }
-
-  const token = await Notifications.getExpoPushTokenAsync({
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-  });
-
-  return token;
-}
-
-async function scheduleNotificationsForContacts() {
-  if (Platform.OS === 'web') return;
-
-  try {
-    // First, cancel all existing notifications
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    // Get all contacts
-    const { data: contacts, error } = await supabase
-      .from('contacts')
-      .select('*');
-
-    if (error) throw error;
-
-    // Schedule new notifications for each contact
-    for (const contact of contacts) {
-      const nextContact = new Date(contact.next_contact);
-      const now = new Date();
-
-      // Only schedule if next_contact is in the future
-      if (nextContact > now) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Time to reconnect!',
-            body: `It's time to reach out to ${contact.name}`,
-            data: { contactId: contact.id },
-          },
-          trigger: {
-            date: nextContact,
-          },
-        });
-      }
-
-      // --- Birthday Notification Logic ---
-      if (contact.birthday) {
-        const birthday = new Date(contact.birthday);
-        // Set year to this year
-        const nowYear = now.getFullYear();
-        let nextBirthday = new Date(birthday);
-        nextBirthday.setFullYear(nowYear);
-        // If birthday this year has already passed, set to next year
-        if (nextBirthday < now) {
-          nextBirthday.setFullYear(nowYear + 1);
-        }
-        // Only schedule if nextBirthday is in the future
-        if (nextBirthday > now) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `It's ${contact.name}'s birthday! 🎉`,
-              body: `Reach out and wish them a happy birthday!`,
-              data: { contactId: contact.id, birthday: true },
-            },
-            trigger: {
-              date: nextBirthday,
-            },
-          });
-        }
-      }
-      // --- End Birthday Notification Logic ---
-    }
-  } catch (error) {
-    console.error('Error scheduling notifications:', error);
-  }
-}
-
-async function sendTestNotification() {
-  try {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-      return;
-    }
-    const now = new Date();
-    const triggerDate = new Date(now.getTime() + 10 * 1000); // 10 seconds from now
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Test Notification',
-        body: 'This is a test notification scheduled 10 seconds ago.',
-        data: { test: true },
-      },
-      trigger: {
-        date: triggerDate,
-      },
-    });
-  } catch (error) {
-    // Optionally, you can handle errors here
-  }
-}
+// Notifications.setNotificationHandler({
+//   handleNotification: async () => ({
+//     shouldShowAlert: true,
+//     shouldPlaySound: true,
+//     shouldSetBadge: true,
+//   }),
+// });
 
 export default function SettingsScreen() {
   const { theme, colorScheme, setTheme, colors } = useTheme();
@@ -187,16 +82,17 @@ export default function SettingsScreen() {
 
   const toggleNotificationSetting = async (setting: string, value: boolean) => {
     if (setting === 'notifications' && value && Platform.OS !== 'web') {
-      const token = await registerForPushNotificationsAsync();
-      if (!token) {
+      // Request permissions if needed, but token retrieval is handled elsewhere
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
-          'Please enable notifications in your device settings to receive reminders.',
-          [{ text: 'OK' }]
+          'Please enable notifications in settings.'
         );
+        setNotifications(false); // Keep switch off if permission denied
         return;
       }
-      await scheduleNotificationsForContacts();
+      await scheduleNotificationsForContacts(); // Use imported function
     }
 
     switch (setting) {

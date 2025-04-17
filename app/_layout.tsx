@@ -14,7 +14,11 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
-import { ThemeProvider } from '../components/ThemeProvider';
+import { ThemeProvider, useTheme } from '../components/ThemeProvider';
+import {
+  configureNotificationHandler,
+  registerForPushNotificationsAsync,
+} from '../lib/notificationUtils';
 
 function useProtectedRoute(user: any) {
   const segments = useSegments();
@@ -33,12 +37,17 @@ function useProtectedRoute(user: any) {
   }, [user, segments]);
 }
 
-export default function RootLayout() {
-  useFrameworkReady();
-  const [user, setUser] = useState<any>(null);
-  const [showNotifModal, setShowNotifModal] = useState(false);
-  const [notifChecked, setNotifChecked] = useState(false);
+// Root component that uses the theme
+function RootLayoutNav() {
+  const { colorScheme } = useTheme();
 
+  // Configure notification handler once
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
+
+  // Get user session
+  const [user, setUser] = useState<any>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -48,6 +57,38 @@ export default function RootLayout() {
       setUser(session?.user ?? null);
     });
   }, []);
+
+  // Register for push notifications when user is logged in
+  useEffect(() => {
+    if (user && Platform.OS !== 'web') {
+      registerForPushNotificationsAsync().then((token) => {
+        if (token) {
+          // Optionally update token in backend if needed
+          console.log('Push token registered/retrieved on load');
+        }
+      });
+    }
+  }, [user]);
+
+  // Protected route logic
+  useProtectedRoute(user);
+
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
+      </Stack>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  useFrameworkReady();
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [notifChecked, setNotifChecked] = useState(false);
 
   // Onboarding notification permission logic for iOS
   useEffect(() => {
@@ -74,42 +115,33 @@ export default function RootLayout() {
     }
   };
 
-  useProtectedRoute(user);
-
   return (
     <ThemeProvider>
-      <>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-        </Stack>
-        <StatusBar style="auto" />
-        {/* Notification Permission Modal for iOS */}
-        <Modal
-          visible={showNotifModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowNotifModal(false)}
-        >
-          <View style={modalStyles.overlay}>
-            <View style={modalStyles.modalBox}>
-              <Text style={modalStyles.title}>Enable Notifications</Text>
-              <Text style={modalStyles.body}>
-                We use notifications to remind you to reach out to your contacts
-                and celebrate birthdays. Please enable notifications to stay
-                connected!
-              </Text>
-              <TouchableOpacity
-                style={modalStyles.button}
-                onPress={handleRequestNotifications}
-              >
-                <Text style={modalStyles.buttonText}>Enable Notifications</Text>
-              </TouchableOpacity>
-            </View>
+      <RootLayoutNav />
+      {/* Notification Permission Modal for iOS */}
+      <Modal
+        visible={showNotifModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifModal(false)}
+      >
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.modalBox}>
+            <Text style={modalStyles.title}>Enable Notifications</Text>
+            <Text style={modalStyles.body}>
+              We use notifications to remind you to reach out to your contacts
+              and celebrate birthdays. Please enable notifications to stay
+              connected!
+            </Text>
+            <TouchableOpacity
+              style={modalStyles.button}
+              onPress={handleRequestNotifications}
+            >
+              <Text style={modalStyles.buttonText}>Enable Notifications</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </>
+        </View>
+      </Modal>
     </ThemeProvider>
   );
 }
