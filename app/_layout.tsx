@@ -11,14 +11,29 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  AppState,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
-import { ThemeProvider, useTheme } from '../components/ThemeProvider';
+import {
+  ThemeProvider,
+  useTheme,
+  ThemeType,
+} from '../components/ThemeProvider';
 import {
   configureNotificationHandler,
   registerForPushNotificationsAsync,
 } from '../lib/notificationUtils';
+
+// Define or import the type for colors if not already available globally
+type ThemeColors = ReturnType<typeof useTheme>['colors'];
+
+// Props for RootLayoutNav to receive modal state/handlers
+interface RootLayoutNavProps {
+  showNotifModal: boolean;
+  setShowNotifModal: (visible: boolean) => void;
+  handleRequestNotifications: () => void;
+}
 
 function useProtectedRoute(user: any) {
   const segments = useSegments();
@@ -37,9 +52,14 @@ function useProtectedRoute(user: any) {
   }, [user, segments]);
 }
 
-// Root component that uses the theme
-function RootLayoutNav() {
-  const { colorScheme } = useTheme();
+// Root component that uses the theme - NOW handles the modal
+function RootLayoutNav({
+  showNotifModal,
+  setShowNotifModal,
+  handleRequestNotifications,
+}: RootLayoutNavProps) {
+  // <-- Receive props
+  const { colorScheme, colors } = useTheme(); // <-- useTheme is safe here
 
   // Configure notification handler once
   useEffect(() => {
@@ -70,8 +90,33 @@ function RootLayoutNav() {
     }
   }, [user]);
 
+  // *** Add this useEffect hook for clearing badge ***
+  useEffect(() => {
+    const clearBadge = async () => {
+      await Notifications.setBadgeCountAsync(0);
+    };
+
+    // Clear badge on initial load
+    clearBadge();
+
+    // Clear badge when app comes to foreground
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        clearBadge();
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // Protected route logic
   useProtectedRoute(user);
+
+  // *** Dynamically create styles based on theme ***
+  const modalStyles = getModalStyles(colors, colorScheme);
 
   return (
     <>
@@ -81,6 +126,31 @@ function RootLayoutNav() {
         <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+
+      {/* Notification Permission Modal for iOS - Moved here */}
+      <Modal
+        visible={showNotifModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifModal(false)}
+      >
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.modalBox}>
+            <Text style={modalStyles.title}>Enable Notifications</Text>
+            <Text style={modalStyles.body}>
+              We use notifications to remind you to reach out to your contacts
+              and celebrate birthdays. Please enable notifications to stay
+              connected!
+            </Text>
+            <TouchableOpacity
+              style={modalStyles.button}
+              onPress={handleRequestNotifications}
+            >
+              <Text style={modalStyles.buttonText}>Enable Notifications</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -117,70 +187,55 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <RootLayoutNav />
-      {/* Notification Permission Modal for iOS */}
-      <Modal
-        visible={showNotifModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowNotifModal(false)}
-      >
-        <View style={modalStyles.overlay}>
-          <View style={modalStyles.modalBox}>
-            <Text style={modalStyles.title}>Enable Notifications</Text>
-            <Text style={modalStyles.body}>
-              We use notifications to remind you to reach out to your contacts
-              and celebrate birthdays. Please enable notifications to stay
-              connected!
-            </Text>
-            <TouchableOpacity
-              style={modalStyles.button}
-              onPress={handleRequestNotifications}
-            >
-              <Text style={modalStyles.buttonText}>Enable Notifications</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Pass state and handlers down to RootLayoutNav */}
+      <RootLayoutNav
+        showNotifModal={showNotifModal}
+        setShowNotifModal={setShowNotifModal}
+        handleRequestNotifications={handleRequestNotifications}
+      />
     </ThemeProvider>
   );
 }
 
-const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBox: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    width: '80%',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  body: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#333',
-  },
-  button: {
-    backgroundColor: '#77dd77',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
+// Function to generate styles based on theme colors
+const getModalStyles = (colors: ThemeColors, colorScheme: 'light' | 'dark') =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor:
+        colorScheme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalBox: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 24,
+      width: '80%',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      textAlign: 'center',
+      color: colors.text,
+    },
+    body: {
+      fontSize: 16,
+      marginBottom: 24,
+      textAlign: 'center',
+      color: colors.secondaryText,
+    },
+    button: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+    },
+    buttonText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+  });

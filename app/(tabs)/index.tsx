@@ -339,16 +339,28 @@ export default function ContactsScreen() {
       'Custom Message',
     ];
 
-    const handleBlankMessage = async (phone: string) => {
-      if (Platform.OS === 'ios') {
-        const smsUrl = `sms:${phone}`;
+    const handleBlankMessage = async (contact: ContactItem) => {
+      const phone = contact.phone;
+      if (!phone) {
+        Alert.alert('Error', 'Contact does not have a phone number.');
+        return;
+      }
+      try {
+        const smsUrl = `sms:${phone}${Platform.OS === 'ios' ? '&' : '?'}body=`; // Empty body
         const canOpen = await Linking.canOpenURL(smsUrl);
         if (canOpen) {
           await Linking.openURL(smsUrl);
+          setLoadingState({ contactId: contact.id, messageType: 'default' }); // Show loading briefly
+          await updateLastContact(contact.id);
+          await fetchContacts();
+          setLoadingState(null);
+        } else {
+          Alert.alert('Error', 'Cannot open messaging app.');
         }
-      } else {
-        const smsUrl = `sms:${phone}`;
-        await Linking.openURL(smsUrl);
+      } catch (error) {
+        console.error('Error opening SMS app:', error);
+        Alert.alert('Error', 'Failed to open messaging app.');
+        setLoadingState(null);
       }
     };
 
@@ -363,9 +375,7 @@ export default function ContactsScreen() {
         (buttonIndex) => {
           switch (buttonIndex) {
             case 1:
-              if (contact.phone) {
-                handleBlankMessage(contact.phone);
-              }
+              handleBlankMessage(contact);
               break;
             case 2:
               handleMessageGeneration(contact, 'default');
@@ -392,7 +402,7 @@ export default function ContactsScreen() {
         [
           {
             text: 'Blank Message',
-            onPress: () => contact.phone && handleBlankMessage(contact.phone),
+            onPress: () => handleBlankMessage(contact),
           },
           {
             text: 'Regular Message',

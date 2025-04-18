@@ -2,7 +2,7 @@
   "expo": {
     "name": "TouchBase",
     "slug": "bolt-expo-nativewind",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -11,6 +11,14 @@
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -49,7 +57,8 @@
         {
           "contactsPermission": "Allow Keep Connect to access your contacts."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
