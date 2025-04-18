@@ -1,6 +1,12 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Plus, Settings, User } from 'lucide-react-native';
 import { useTheme } from '../../components/ThemeProvider';
+import { MaterialIcons } from '@expo/vector-icons';
+import IndexScreen from '.'; // Assuming index.tsx is the contacts list
+import AddScreen from './add';
+import SettingsScreen from './settings';
+import StreakScreen from './streak'; // Import the new screen
 
 export default function TabLayout() {
   const { colors } = useTheme();
@@ -28,23 +34,44 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Contacts',
-          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="contacts" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="add"
         options={{
-          title: 'Add Contact',
-          tabBarIcon: ({ color }) => <Plus size={24} color={color} />,
-          headerTitle: 'Add Contact',
+          title: 'Add',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons
+              name="add-circle-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="streak"
+        options={{
+          title: 'Streak',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons
+              name="local-fire-department"
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
-          headerTitle: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="settings" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

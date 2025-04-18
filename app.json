@@ -2,7 +2,7 @@
   "expo": {
     "name": "TouchBase",
     "slug": "bolt-expo-nativewind",
-    "version": "1.0.4",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -21,6 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "Allow Keep Connect to access your contacts.",
         "ITSAppUsesNonExemptEncryption": false
       },

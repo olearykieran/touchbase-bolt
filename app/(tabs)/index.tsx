@@ -33,12 +33,26 @@ import {
   differenceInCalendarDays,
   addYears,
   isBefore,
+  isPast,
   parseISO,
 } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import React from 'react';
 import { useTheme } from '../../components/ThemeProvider';
 import EditContactModal from '../../components/EditContactModal';
+
+// Define types if they are not already globally defined
+interface ContactItem {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  birthday?: string;
+  nextContact: string | Date; // Allow string from DB or Date object
+  streak?: number; // Make streak optional if not always present initially
+  last_contact: string | Date; // Add missing field
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'; // Add missing field
+}
 
 type LoadingState = {
   contactId: string;
@@ -129,7 +143,9 @@ export default function ContactsScreen() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [isCustomPromptModalVisible, setIsCustomPromptModalVisible] =
     useState(false);
-  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactItem | null>(
+    null
+  );
   const [tempPrompt, setTempPrompt] = useState('');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(
@@ -147,7 +163,7 @@ export default function ContactsScreen() {
     setRefreshing(false);
   };
 
-  const handleDelete = (contact: any) => {
+  const handleDelete = (contact: ContactItem) => {
     Alert.alert(
       'Delete Contact',
       `Are you sure you want to delete ${contact.name}?`,
@@ -173,7 +189,7 @@ export default function ContactsScreen() {
   };
 
   const handleMessageGeneration = async (
-    contact: any,
+    contact: ContactItem,
     messageType: LoadingState['messageType'] = 'default',
     prompt?: string
   ) => {
@@ -258,27 +274,31 @@ export default function ContactsScreen() {
     }
   };
 
-  const handlePhonePress = async (phone: string) => {
+  const handlePhonePress = async (phone?: string) => {
     if (phone) {
       const phoneUrl = `tel:${phone}`;
       const canOpen = await Linking.canOpenURL(phoneUrl);
       if (canOpen) {
         await Linking.openURL(phoneUrl);
       }
+    } else {
+      console.warn('Attempted to call undefined phone number');
     }
   };
 
-  const handleEmailPress = async (email: string) => {
+  const handleEmailPress = async (email?: string) => {
     if (email) {
       const emailUrl = `mailto:${email}`;
       const canOpen = await Linking.canOpenURL(emailUrl);
       if (canOpen) {
         await Linking.openURL(emailUrl);
       }
+    } else {
+      console.warn('Attempted to mail undefined email address');
     }
   };
 
-  const handleCustomPrompt = useCallback((contact: any) => {
+  const handleCustomPrompt = useCallback((contact: ContactItem) => {
     setSelectedContact(contact);
     setTempPrompt('');
     setIsCustomPromptModalVisible(true);
@@ -308,7 +328,7 @@ export default function ContactsScreen() {
     setIsEditModalVisible(true);
   };
 
-  const showMessageOptions = (contact: any) => {
+  const showMessageOptions = (contact: ContactItem) => {
     const options = [
       'Cancel',
       'Blank Message',
@@ -404,124 +424,161 @@ export default function ContactsScreen() {
     }
   };
 
-  const renderContact = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[styles.contactCard, { backgroundColor: colors.card }]}
-    >
-      <View style={styles.contactInfo}>
-        <View style={styles.contactHeader}>
-          <Text
-            style={[
-              styles.name,
-              { color: colors.text, flex: 1, marginRight: 8 },
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {item.name}
-          </Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => handleEditPress(item.id)}
+  const renderContact = ({ item }: { item: ContactItem }) => {
+    const nextContactDate = new Date(item.nextContact);
+    const isContactLate = isPast(nextContactDate);
+
+    let streakBadge = null;
+    const currentStreak = item.streak || 0;
+    if (currentStreak >= 365) streakBadge = '1 Year+ 🔥';
+    else if (currentStreak >= 180) streakBadge = '6 Mo+ 🔥';
+    else if (currentStreak >= 30) streakBadge = '30 Day+ 🔥';
+    else if (currentStreak >= 7) streakBadge = '7 Day+ 🔥';
+    else if (currentStreak > 0) streakBadge = `${currentStreak} Day 🔥`;
+
+    return (
+      <TouchableOpacity
+        style={[styles.contactCard, { backgroundColor: colors.card }]}
+      >
+        <View style={styles.contactInfo}>
+          <View style={styles.contactHeader}>
+            <Text
+              style={[
+                styles.name,
+                { color: colors.text, flex: 1, marginRight: 8 },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              <PenSquare size={20} color={colors.secondaryText} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleDelete(item)}
-            >
-              <Trash2 size={20} color="#FF3B30" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.contactDetails}>
-          {item.phone && (
-            <Text style={[styles.contactText, { color: colors.secondaryText }]}>
-              {item.phone}
-              {item.birthday && (
-                <Text style={styles.birthdayText}>
-                  {`  🎂 ${format(parseISO(item.birthday), 'MMM d')}`}
-                  {(() => {
-                    const days = getBirthdayCountdown(item.birthday);
-                    if (days === null) return '';
-                    if (days === 0) return ' (Today!)';
-                    if (days === 1) return ' (Tomorrow)';
-                    if (days > 0) return ` (${days} days left)`;
-                    return '';
-                  })()}
-                </Text>
-              )}
+              {item.name}
             </Text>
-          )}
-          {item.email && (
-            <Text style={[styles.contactText, { color: colors.secondaryText }]}>
-              {item.email}
-            </Text>
-          )}
-        </View>
-        <View style={styles.actionRow}>
-          <View style={styles.buttonContainer}>
-            <View style={styles.primaryActions}>
-              {item.phone && (
-                <TouchableOpacity
+            <View style={styles.headerActions}>
+              {streakBadge && (
+                <View
                   style={[
-                    styles.actionButton,
-                    { backgroundColor: colors.background },
+                    styles.badgeContainer,
+                    { backgroundColor: colors.accent + '20' },
                   ]}
-                  onPress={() => handlePhonePress(item.phone)}
                 >
-                  <Phone size={20} color={colors.accent} />
-                </TouchableOpacity>
-              )}
-              {item.email && (
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    { backgroundColor: colors.background },
-                  ]}
-                  onPress={() => handleEmailPress(item.email)}
-                >
-                  <Mail size={20} color={colors.accent} />
-                </TouchableOpacity>
+                  <Text style={[styles.badgeText, { color: colors.accent }]}>
+                    {streakBadge}
+                  </Text>
+                </View>
               )}
               <TouchableOpacity
-                style={[
-                  styles.messageButton,
-                  { backgroundColor: colors.accent },
-                ]}
-                onPress={() => showMessageOptions(item)}
-                disabled={loadingState !== null}
+                style={styles.editButton}
+                onPress={() => handleEditPress(item.id)}
               >
-                {loadingState?.contactId === item.id ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <>
-                    <MessageCircle size={20} color="white" />
-                    <Text style={styles.messageButtonText}>
-                      Generate Message
-                    </Text>
-                  </>
-                )}
+                <PenSquare size={20} color={colors.secondaryText} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDelete(item)}
+              >
+                <Trash2 size={20} color="#FF3B30" />
               </TouchableOpacity>
             </View>
           </View>
+          <View style={styles.contactDetails}>
+            {item.phone && (
+              <Text
+                style={[styles.contactText, { color: colors.secondaryText }]}
+              >
+                {item.phone}
+                {item.birthday && (
+                  <Text style={styles.birthdayText}>
+                    {`  🎂 ${format(parseISO(item.birthday), 'MMM d')}`}
+                    {(() => {
+                      const days = getBirthdayCountdown(item.birthday);
+                      if (days === null) return '';
+                      if (days === 0) return ' (Today!)';
+                      if (days === 1) return ' (Tomorrow)';
+                      if (days > 0) return ` (${days} days left)`;
+                      return '';
+                    })()}
+                  </Text>
+                )}
+              </Text>
+            )}
+            {item.email && (
+              <Text
+                style={[styles.contactText, { color: colors.secondaryText }]}
+              >
+                {item.email}
+              </Text>
+            )}
+          </View>
+          <View style={styles.actionRow}>
+            <View style={styles.buttonContainer}>
+              <View style={styles.primaryActions}>
+                {item.phone && (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: colors.background },
+                    ]}
+                    onPress={() => handlePhonePress(item.phone)}
+                  >
+                    <Phone size={20} color={colors.accent} />
+                  </TouchableOpacity>
+                )}
+                {item.email && (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: colors.background },
+                    ]}
+                    onPress={() => handleEmailPress(item.email)}
+                  >
+                    <Mail size={20} color={colors.accent} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.messageButton,
+                    { backgroundColor: colors.accent },
+                  ]}
+                  onPress={() => showMessageOptions(item)}
+                  disabled={loadingState !== null}
+                >
+                  {loadingState?.contactId === item.id ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <>
+                      <MessageCircle size={20} color="white" />
+                      <Text style={styles.messageButtonText}>
+                        Generate Message
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          <View style={styles.nextContact}>
-            <Clock size={16} color={colors.secondaryText} />
-            <Text
-              style={[styles.nextContactText, { color: colors.secondaryText }]}
-            >
-              Next:{' '}
-              {formatDistanceToNow(new Date(item.nextContact), {
-                addSuffix: true,
-              })}
-            </Text>
+            <View style={styles.nextContact}>
+              <Clock
+                size={16}
+                color={isContactLate ? colors.error : colors.secondaryText}
+              />
+              <Text
+                style={[
+                  styles.nextContactText,
+                  {
+                    color: isContactLate ? colors.error : colors.secondaryText,
+                  },
+                ]}
+              >
+                {isContactLate ? 'Late: ' : 'Next: '}
+                {formatDistanceToNow(nextContactDate, {
+                  addSuffix: true,
+                })}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (error) {
     return (
@@ -540,7 +597,19 @@ export default function ContactsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={contacts}
+        data={
+          [...contacts].sort((a, b) => {
+            const aDate = new Date(a.nextContact);
+            const bDate = new Date(b.nextContact);
+            const aIsLate = isPast(aDate);
+            const bIsLate = isPast(bDate);
+
+            if (aIsLate && !bIsLate) return -1;
+            if (!aIsLate && bIsLate) return 1;
+
+            return aDate.getTime() - bDate.getTime();
+          }) as unknown as ContactItem[]
+        }
         renderItem={renderContact}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
@@ -577,6 +646,7 @@ export default function ContactsScreen() {
   );
 }
 
+// Define styles within the component scope to access 'colors'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -656,6 +726,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     flex: 1,
+    backgroundColor: '#007AFF',
   },
   messageButtonText: {
     color: 'white',
@@ -788,5 +859,15 @@ const styles = StyleSheet.create({
   },
   editButton: {
     padding: 8,
+  },
+  badgeContainer: {
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

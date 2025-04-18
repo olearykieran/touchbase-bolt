@@ -11,6 +11,7 @@ interface Contact {
   lastContact: Date;
   nextContact: Date;
   reminderInterval: string;
+  streak?: number;
 }
 
 interface ContactStore {
@@ -180,6 +181,15 @@ export const useContactStore = create<ContactStore>((set, get) => ({
   },
 
   updateLastContact: async (contactId) => {
+    const currentState = get();
+    const contact = currentState.contacts.find((c) => c.id === contactId);
+
+    if (!contact) {
+      console.error(`Contact with ID ${contactId} not found in store.`);
+      set({ error: `Contact with ID ${contactId} not found.`, loading: false });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
       const {
@@ -190,11 +200,24 @@ export const useContactStore = create<ContactStore>((set, get) => ({
       if (!user) throw new Error('Not authenticated');
 
       const lastContact = new Date();
+      const currentNextContactDate = new Date(contact.nextContact);
+      const currentStreak = contact.streak || 0;
+
+      let newStreak = 1;
+      if (lastContact <= currentNextContactDate) {
+        newStreak = currentStreak + 1;
+        console.log(
+          `Contact ${contactId}: On time! Streak incremented to ${newStreak}`
+        );
+      } else {
+        console.log(`Contact ${contactId}: Late! Streak reset to 1`);
+      }
 
       const { data, error } = await supabase
         .from('contacts')
         .update({
           last_contact: lastContact.toISOString(),
+          streak: newStreak,
         })
         .eq('id', contactId)
         .eq('user_id', user.id)
@@ -210,6 +233,7 @@ export const useContactStore = create<ContactStore>((set, get) => ({
                 ...c,
                 lastContact: new Date(data.last_contact),
                 nextContact: new Date(data.next_contact),
+                streak: data.streak,
               }
             : c
         ),

@@ -62,10 +62,8 @@ export default function SettingsScreen() {
       // Listen for notification receipt (foreground)
       const receivedSubscription =
         Notifications.addNotificationReceivedListener((notification) => {
-          Alert.alert(
-            notification.request.content.title || 'Notification',
-            notification.request.content.body || ''
-          );
+          // Let the notification handler show the banner instead of using Alert
+          console.log('Received foreground notification:', notification);
         });
 
       return () => {
@@ -92,22 +90,26 @@ export default function SettingsScreen() {
         setNotifications(false); // Keep switch off if permission denied
         return;
       }
-      await scheduleNotificationsForContacts(); // Use imported function
+      // await scheduleNotificationsForContacts(); // Use imported function - COMMENTED OUT
     }
 
     switch (setting) {
       case 'notifications':
         setNotifications(value);
         if (!value && Platform.OS !== 'web') {
-          await Notifications.cancelAllScheduledNotificationsAsync();
+          // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
         }
+        break;
+      default:
+        // For other settings, just update the state
+        // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
         break;
     }
   };
 
   const handleSignOut = async () => {
     if (Platform.OS !== 'web') {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
     }
     await supabase.auth.signOut();
   };
@@ -162,6 +164,59 @@ export default function SettingsScreen() {
       ],
       { cancelable: true }
     );
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      console.log('Testing notifications...');
+
+      // Method 1: Direct presentation
+      await Notifications.presentNotificationAsync({
+        title: 'Direct Test',
+        body: 'This is a direct notification test',
+        sound: true,
+        badge: 1,
+      });
+
+      // Method 2: Immediate schedule
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Immediate Schedule Test',
+          body: 'This is an immediate scheduled notification',
+          sound: true,
+          badge: 2,
+        },
+        trigger: null,
+      });
+
+      // Method 3: Delayed schedule (5 seconds)
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Delayed Test',
+          body: 'This is a delayed notification (5 seconds)',
+          sound: true,
+          badge: 3,
+          priority: 'max',
+          categoryIdentifier: 'reminder',
+        },
+        trigger: {
+          seconds: 5,
+          repeats: false,
+        },
+      });
+
+      console.log('All test notifications sent');
+      Alert.alert(
+        'Success',
+        'Test notifications sent. Check your notification center.'
+      );
+    } catch (error) {
+      console.error('Error sending test notifications:', error);
+      Alert.alert(
+        'Error',
+        'Could not send test notifications. Check console for details.'
+      );
+    }
   };
 
   return (
@@ -315,7 +370,7 @@ export default function SettingsScreen() {
               alignItems: 'center',
               marginTop: 16,
             }}
-            onPress={sendTestNotification}
+            onPress={handleTestNotification}
           >
             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
               Send Test Notification
