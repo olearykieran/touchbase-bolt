@@ -9,6 +9,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import * as Contacts from 'expo-contacts';
 import { useState } from 'react';
 import { useContactStore } from '@/lib/store';
 import { router } from 'expo-router';
@@ -17,6 +18,8 @@ import ContactPickerModal from '@/components/ContactPickerModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
 import { useTheme } from '../../components/ThemeProvider';
+import Tooltip from 'react-native-walkthrough-tooltip';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
@@ -24,8 +27,11 @@ export default function AddContactScreen() {
   const error = useContactStore((state) => state.error);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
-  const [showFirstContactDatePicker, setShowFirstContactDatePicker] =
-    useState(false);
+  const [showFirstContactDatePicker, setShowFirstContactDatePicker] = useState(false);
+  const [contactPermissionStatus, setContactPermissionStatus] = useState<
+    'undetermined' | 'granted' | 'denied'
+  >('undetermined');
+  const [showContactPermissionPrompt, setShowContactPermissionPrompt] = useState(false);
   const { colors, colorScheme } = useTheme();
 
   const [formData, setFormData] = useState({
@@ -74,30 +80,95 @@ export default function AddContactScreen() {
     });
   };
 
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') {
+      (async () => {
+        const { status } = await Contacts.getPermissionsAsync();
+        setContactPermissionStatus(status);
+        if (status !== 'granted') {
+          setShowContactPermissionPrompt(true);
+        }
+      })();
+    }
+  }, []);
+
+  const requestContactPermission = async () => {
+    const { status } = await Contacts.requestPermissionsAsync();
+    setContactPermissionStatus(status);
+    if (status === 'granted') {
+      setShowContactPermissionPrompt(false);
+    }
+  };
+
+  // Onboarding state
+  const [showAddOnboarding, setShowAddOnboarding] = useState(false);
+  const [addOnboardingStep, setAddOnboardingStep] = useState(0); // 0: none, 1: contacts btn, 2: freq, 3: reminder
+  const addOnboardingKey = 'add_contact_onboarding_v1';
+
+  React.useEffect(() => {
+    (async () => {
+      const shown = await AsyncStorage.getItem(addOnboardingKey);
+      if (!shown) {
+        setShowAddOnboarding(true);
+        setAddOnboardingStep(1);
+      }
+    })();
+  }, []);
+
+  const handleNextAddOnboarding = async () => {
+    if (addOnboardingStep === 1) {
+      setAddOnboardingStep(2);
+    } else if (addOnboardingStep === 2) {
+      setAddOnboardingStep(3);
+    } else {
+      setShowAddOnboarding(false);
+      setAddOnboardingStep(0);
+      await AsyncStorage.setItem(addOnboardingKey, 'true');
+    }
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={styles.form}>
         {error && (
-          <Text style={[styles.errorText, { color: colors.error }]}>
-            {error}
-          </Text>
+          <Text style={[styles.errorText, { color: colors.error }]}> {error} </Text>
         )}
 
         {Platform.OS !== 'web' && (
-          <TouchableOpacity
-            style={[
-              styles.contactPickerButton,
-              { backgroundColor: colors.card },
-            ]}
-            onPress={() => setShowContactPicker(true)}
-          >
-            <Users size={24} color={colors.accent} />
-            <Text style={[styles.contactPickerText, { color: colors.accent }]}>
-              Add from Contacts
-            </Text>
-          </TouchableOpacity>
+          showAddOnboarding && addOnboardingStep === 1 ? (
+            <Tooltip
+              isVisible={true}
+              content={<Text>You can add contacts from your phone by clicking the "Add from Contacts" button.</Text>}
+              placement="bottom"
+              onClose={handleNextAddOnboarding}
+              showChildInTooltip={false}
+              useInteractionManager={true}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.contactPickerButton,
+                  { backgroundColor: colors.card },
+                ]}
+                onPress={() => setShowContactPicker(true)}
+              >
+                <Users size={24} color={colors.accent} />
+                <Text style={[styles.contactPickerText, { color: colors.accent }]}>Add from Contacts</Text>
+              </TouchableOpacity>
+            </Tooltip>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.contactPickerButton,
+                { backgroundColor: colors.card },
+              ]}
+              onPress={() => setShowContactPicker(true)}
+            >
+              <Users size={24} color={colors.accent} />
+              <Text style={[styles.contactPickerText, { color: colors.accent }]}>Add from Contacts</Text>
+            </TouchableOpacity>
+          )
         )}
 
         <Text style={[styles.label, { color: colors.text }]}>Name</Text>
@@ -139,30 +210,60 @@ export default function AddContactScreen() {
         <Text style={[styles.label, { color: colors.text }]}>
           Contact Frequency
         </Text>
-        <View style={styles.frequencyButtons}>
-          {frequencies.map((freq) => (
-            <TouchableOpacity
-              key={freq}
-              style={[
-                styles.frequencyButton,
-                {
-                  backgroundColor:
-                    formData.frequency === freq ? colors.accent : colors.border,
-                },
-              ]}
-              onPress={() => setFormData({ ...formData, frequency: freq })}
-            >
-              <Text
+        {showAddOnboarding && addOnboardingStep === 2 ? (
+          <Tooltip
+            isVisible={true}
+            content={<Text>You can choose how often you want to be reminded to reach out to this person by selecting contact frequency.</Text>}
+            placement="bottom"
+            onClose={handleNextAddOnboarding}
+            showChildInTooltip={false}
+            useInteractionManager={true}
+          >
+            <View style={styles.frequencyButtons}>
+              {frequencies.map((freq) => (
+                <TouchableOpacity
+                  key={freq}
+                  style={[
+                    styles.frequencyButton,
+                    formData.frequency === freq && { backgroundColor: colors.accent },
+                  ]}
+                  onPress={() => setFormData({ ...formData, frequency: freq })}
+                >
+                  <Text
+                    style={[
+                      styles.frequencyButtonText,
+                      formData.frequency === freq && { color: '#fff' },
+                    ]}
+                  >
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Tooltip>
+        ) : (
+          <View style={styles.frequencyButtons}>
+            {frequencies.map((freq) => (
+              <TouchableOpacity
+                key={freq}
                 style={[
-                  styles.frequencyButtonText,
-                  { color: formData.frequency === freq ? '#fff' : colors.text },
+                  styles.frequencyButton,
+                  formData.frequency === freq && { backgroundColor: colors.accent },
                 ]}
+                onPress={() => setFormData({ ...formData, frequency: freq })}
               >
-                {freq.charAt(0).toUpperCase() + freq.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Text
+                  style={[
+                    styles.frequencyButtonText,
+                    formData.frequency === freq && { color: '#fff' },
+                  ]}
+                >
+                  {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <Text style={[styles.label, { color: colors.text }]}>
           Birthday (optional)
@@ -183,30 +284,46 @@ export default function AddContactScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.label, { color: colors.text }]}>
-          First Reminder (Optional)
+          First Reminder Time
         </Text>
-        <TouchableOpacity
-          style={[styles.input, { backgroundColor: colors.card }]}
-          onPress={() => setShowFirstContactDatePicker(true)}
-        >
-          <Text
-            style={{
-              color: formData.firstContactDate
-                ? colors.text
-                : colors.secondaryText,
-            }}
+        {showAddOnboarding && addOnboardingStep === 3 ? (
+          <Tooltip
+            isVisible={true}
+            content={<Text>You can specify when you want to first be reminded to reach out to this contact here.</Text>}
+            placement="bottom"
+            onClose={handleNextAddOnboarding}
+            showChildInTooltip={false}
+            useInteractionManager={true}
           >
-            {formData.firstContactDate
-              ? formData.firstContactDate.toLocaleString([], {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })
-              : 'Default (Based on Frequency)'}
-          </Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, marginBottom: 16 },
+              ]}
+              onPress={() => setShowFirstContactDatePicker(true)}
+            >
+              <Text style={{ color: colors.text }}>
+                {formData.firstContactDate ?
+                  formData.firstContactDate.toLocaleString() :
+                  'Select Date & Time'}
+              </Text>
+            </TouchableOpacity>
+          </Tooltip>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.input,
+              { backgroundColor: colors.card, marginBottom: 16 },
+            ]}
+            onPress={() => setShowFirstContactDatePicker(true)}
+          >
+            <Text style={{ color: colors.text }}>
+              {formData.firstContactDate ?
+                formData.firstContactDate.toLocaleString() :
+                'Select Date & Time'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[
@@ -354,6 +471,84 @@ export default function AddContactScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showContactPermissionPrompt}
+        transparent={true}
+        animationType="fade"
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.card,
+              padding: 24,
+              borderRadius: 16,
+              alignItems: 'center',
+              maxWidth: 340,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: '600',
+                marginBottom: 12,
+                color: colors.text,
+              }}
+            >
+              Access Contacts
+            </Text>
+            <Text
+              style={{
+                color: colors.secondaryText,
+                fontSize: 15,
+                textAlign: 'center',
+                marginBottom: 20,
+              }}
+            >
+              To easily add people from your device, please allow TouchBase to
+              access your contacts.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.accent,
+                paddingVertical: 10,
+                paddingHorizontal: 30,
+                borderRadius: 8,
+                marginBottom: 8,
+              }}
+              onPress={requestContactPermission}
+            >
+              <Text
+                style={{
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: 16,
+                }}
+              >
+                Enable Contacts Access
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowContactPermissionPrompt(false)}>
+              <Text
+                style={{
+                  color: colors.secondaryText,
+                  fontSize: 15,
+                  marginTop: 4,
+                }}
+              >
+                Maybe later
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -407,7 +602,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5EA',
   },
   frequencyButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3dc0dc',
   },
   frequencyButtonText: {
     color: '#000',

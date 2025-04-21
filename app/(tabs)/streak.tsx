@@ -21,24 +21,14 @@ const StreakScreen = () => {
     null
   );
 
-  // State for Contacts (Highest Contact Streak)
+  // State for Contacts (for loading and error only)
   const {
-    contacts,
     loading: contactsLoading,
     error: contactsError,
   } = useContactStore((state) => ({
-    contacts: state.contacts,
     loading: state.loading,
     error: state.error,
   }));
-
-  // Calculate the highest per-contact streak
-  const highestContactStreak = useMemo(() => {
-    if (!contacts || contacts.length === 0) {
-      return 0;
-    }
-    return Math.max(...contacts.map((contact) => contact.streak || 0));
-  }, [contacts]);
 
   // Fetch global streak from profile on mount
   useEffect(() => {
@@ -123,36 +113,6 @@ const StreakScreen = () => {
           Days in a row you've reached out to everyone due.
         </Text>
       </View>
-
-      {/* Separator */}
-      <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-      {/* Highest Contact Streak Section */}
-      <View style={styles.streakSection}>
-        <MaterialIcons
-          name="local-fire-department"
-          size={80}
-          color={colors.accent}
-        />
-        <Text style={[styles.title, { color: colors.text }]}>
-          Highest Contact Streak
-        </Text>
-        {contactsError ? (
-          <Text style={styles.errorText}>{contactsError}</Text>
-        ) : (
-          <>
-            <Text style={[styles.streakNumber, { color: colors.accent }]}>
-              {highestContactStreak}
-            </Text>
-            <Text style={[styles.daysText, { color: colors.secondaryText }]}>
-              days
-            </Text>
-          </>
-        )}
-        <Text style={[styles.subText, { color: colors.secondaryText }]}>
-          Your longest active streak with a single contact.
-        </Text>
-      </View>
     </ScrollView>
   );
 };
@@ -208,11 +168,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 10,
-  },
-  separator: {
-    height: 1,
-    width: '80%',
-    marginVertical: 30, // Space around the separator
   },
 });
 

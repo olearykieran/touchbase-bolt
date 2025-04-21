@@ -40,6 +40,9 @@ import { supabase } from '@/lib/supabase';
 import React from 'react';
 import { useTheme } from '../../components/ThemeProvider';
 import EditContactModal from '../../components/EditContactModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import Tooltip from 'react-native-walkthrough-tooltip';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -129,7 +132,7 @@ function getBirthdayCountdown(birthdayStr: string | undefined): number | null {
   return days;
 }
 
-export default function ContactsScreen() {
+function ContactsScreen(props: any) {
   const {
     contacts,
     loading,
@@ -152,6 +155,32 @@ export default function ContactsScreen() {
     null
   );
   const { colors } = useTheme();
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0); // 0: none, 1: list, 2: add btn
+  const onboardingShownKey = 'onboarding_shown_v2';
+
+  // Check first-time user (no contacts and not shown onboarding)
+  useEffect(() => {
+    (async () => {
+      const shown = await AsyncStorage.getItem(onboardingShownKey);
+      if (!shown && (!contacts || contacts.length === 0) && !loading) {
+        setShowOnboarding(true);
+        setOnboardingStep(1);
+      }
+    })();
+  }, [contacts, loading]);
+
+  const handleNextOnboarding = async () => {
+    if (onboardingStep === 1) {
+      setOnboardingStep(2);
+    } else {
+      setShowOnboarding(false);
+      setOnboardingStep(0);
+      await AsyncStorage.setItem(onboardingShownKey, 'true');
+    }
+  };
 
   useEffect(() => {
     fetchContacts();
@@ -346,8 +375,11 @@ export default function ContactsScreen() {
         return;
       }
       try {
-        const smsUrl = `sms:${phone}${Platform.OS === 'ios' ? '&' : '?'}body=`; // Empty body
+        const smsUrl = `sms:${phone}${
+          Platform.OS === 'ios' ? '&' : '?'
+        }body=`; // Empty body
         const canOpen = await Linking.canOpenURL(smsUrl);
+
         if (canOpen) {
           await Linking.openURL(smsUrl);
           setLoadingState({ contactId: contact.id, messageType: 'default' }); // Show loading briefly
@@ -605,56 +637,119 @@ export default function ContactsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={
-          [...contacts].sort((a, b) => {
-            const aDate = new Date(a.nextContact);
-            const bDate = new Date(b.nextContact);
-            const aIsLate = isPast(aDate);
-            const bIsLate = isPast(bDate);
-
-            if (aIsLate && !bIsLate) return -1;
-            if (!aIsLate && bIsLate) return 1;
-
-            return aDate.getTime() - bDate.getTime();
-          }) as unknown as ContactItem[]
-        }
-        renderItem={renderContact}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator style={styles.loader} color={colors.accent} />
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-              No contacts yet. Add some!
-            </Text>
-          )
-        }
-      />
+    <View style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <FlatList
+          data={
+            [...contacts].sort((a, b) => {
+              const aDate = new Date(a.nextContact);
+              const bDate = new Date(b.nextContact);
+              const aIsLate = isPast(aDate);
+              const bIsLate = isPast(bDate);
+              if (aIsLate && !bIsLate) return -1;
+              if (!aIsLate && bIsLate) return 1;
+              return aDate.getTime() - bDate.getTime();
+            }) as unknown as ContactItem[]
+          }
+          renderItem={renderContact}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            loading ? (
+              <ActivityIndicator style={styles.loader} color={colors.accent} />
+            ) : (
+              <View style={{ alignItems: 'center', marginTop: 40 }}>
+                {showOnboarding && onboardingStep === 1 ? (
+                  <Tooltip
+                    isVisible={true}
+                    content={
+                      <Text>This is where your contacts will appear. Let's add your first contact!</Text>
+                    }
+                    placement="bottom"
+                    onClose={handleNextOnboarding}
+                    showChildInTooltip={false}
+                    useInteractionManager={true}
+                  >
+                    <Text
+                      style={[
+                        styles.emptyText,
+                        { color: colors.secondaryText },
+                      ]}
+                    >
+                      No contacts yet. Add some!
+                    </Text>
+                  </Tooltip>
+                ) : (
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
+                    No contacts yet. Add some!
+                  </Text>
+                )}
+                {/* FAB below empty state */}
+                {showOnboarding && onboardingStep === 2 ? (
+                  <Tooltip
+                    isVisible={true}
+                    content={
+                      <Text>
+                        Tap here to add your first contact. You can import from
+                        your device or enter manually.
+                      </Text>
+                    }
+                    placement="top"
+                    onClose={handleNextOnboarding}
+                    showChildInTooltip={false}
+                    useInteractionManager={true}
+                    tooltipStyle={{ marginLeft: -60 }}
+                  >
+                    <TouchableOpacity
+                      style={[styles.fab, { marginTop: 24 }]}
+                      onPress={() => router.push('/(tabs)/add')}
+                    >
+                      <Text style={styles.fabText}>+</Text>
+                    </TouchableOpacity>
+                  </Tooltip>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.fab, { marginTop: 24 }]}
+                    onPress={() => router.push('/(tabs)/add')}
+                  >
+                    <Text style={styles.fabText}>+</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )
+          }
+          ListFooterComponent={
+            contacts && contacts.length > 0 ? (
+              <TouchableOpacity
+                style={[styles.fab, { alignSelf: 'center', marginVertical: 32 }]}
+                onPress={() => router.push('/(tabs)/add')}
+              >
+                <Text style={styles.fabText}>+</Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      </View>
       <CustomPromptModal
         visible={isCustomPromptModalVisible}
         onClose={handleCloseModal}
         onSubmit={handleCustomPromptSubmit}
-        prompt={tempPrompt}
-        onChangePrompt={handlePromptChange}
-      />
-      <EditContactModal
-        visible={isEditModalVisible}
-        onClose={() => {
-          setIsEditModalVisible(false);
-          setSelectedContactId(null);
-        }}
-        contactId={selectedContactId}
-        onContactUpdated={fetchContacts}
+        prompt={customPrompt}
+        onChangePrompt={setCustomPrompt}
       />
     </View>
   );
 }
+
+export default ContactsScreen;
 
 // Define styles within the component scope to access 'colors'
 const styles = StyleSheet.create({
@@ -879,5 +974,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3dc0dc',
+  },
+  fabText: {
+    color: 'white',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginTop: -2,
   },
 });

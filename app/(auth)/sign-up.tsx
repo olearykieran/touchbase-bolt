@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
   Animated,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -19,11 +18,12 @@ import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
 import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
 
-function SignInInner() {
+function SignUpInner() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [logoReady, setLogoReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { colors } = useTheme();
@@ -45,17 +45,20 @@ function SignInInner() {
     }
   }, [logoReady]);
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     setLoading(true);
     setError(null);
+    setSuccess(false);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
       if (error) throw error;
+      setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -74,9 +77,14 @@ function SignInInner() {
           <View
             style={[styles.formContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Sign in to continue</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Join TouchBase to stay connected!</Text>
             {error && <Text style={styles.errorText}>{error}</Text>}
+            {success && (
+              <Text style={styles.successText}>
+                Account created! Check your email for a confirmation link.
+              </Text>
+            )}
             <TextInput
               style={[
                 styles.input,
@@ -101,7 +109,7 @@ function SignInInner() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              textContentType="password"
+              textContentType="newPassword"
               autoComplete="password"
               placeholderTextColor={colors.secondaryText}
             />
@@ -111,21 +119,21 @@ function SignInInner() {
                 { backgroundColor: colors.accent },
                 loading && styles.buttonDisabled,
               ]}
-              onPress={handleSignIn}
+              onPress={handleSignUp}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Create Account</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => router.replace('/sign-up')}
+              onPress={() => router.replace('/sign-in')}
               disabled={loading}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>Don't have an account? Create one</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>Already have an account? Sign in</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
@@ -159,10 +167,10 @@ function SignInInner() {
   );
 }
 
-export default function SignIn() {
+export default function SignUp() {
   return (
     <ThemeProvider>
-      <SignInInner />
+      <SignUpInner />
     </ThemeProvider>
   );
 }
@@ -237,6 +245,12 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  successText: {
+    color: '#34C759',
+    marginBottom: 16,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   logoContainer: {
     alignItems: 'center',

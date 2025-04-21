@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from './supabase';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 
-interface Contact {
+export interface Contact {
   id: string;
   name: string;
   email: string;
