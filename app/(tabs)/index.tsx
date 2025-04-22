@@ -43,6 +43,7 @@ import EditContactModal from '../../components/EditContactModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Tooltip from 'react-native-walkthrough-tooltip';
+import * as SMS from 'expo-sms';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -59,7 +60,7 @@ interface ContactItem {
 
 type LoadingState = {
   contactId: string;
-  messageType: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday';
+  messageType: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday' | 'joke' | 'fact';
 };
 
 // Move CustomPromptModal outside the main component
@@ -267,29 +268,31 @@ function ContactsScreen(props: any) {
         throw new Error('No message was generated');
       }
 
+      // Optimistically update contact state before opening composer/share
       await updateLastContact(contact.id);
-      await fetchContacts();
+      await fetchContacts(); // Re-fetch to update UI optimistically
 
-      if (Platform.OS === 'web') {
-        await Share.share({
-          title: 'Message',
-          message,
-        });
-      } else {
-        if (contact.phone) {
-          const smsUrl = `sms:${contact.phone}${
-            Platform.OS === 'ios' ? '&' : '?'
-          }body=${encodeURIComponent(message)}`;
-          const canOpen = await Linking.canOpenURL(smsUrl);
-
-          if (canOpen) {
-            await Linking.openURL(smsUrl);
-          } else {
-            await Share.share({ message });
-          }
+      // Use expo-sms for reliable SMS prefill
+      if (contact.phone) {
+        const isAvailable = await SMS.isAvailableAsync();
+        if (isAvailable) {
+          // Open the native SMS composer
+          const { result } = await SMS.sendSMSAsync(
+            [contact.phone], // Recipients array
+            message // Message body - passed directly
+          );
+          console.log('SMS Composer Result:', result);
+          // result can be 'sent', 'cancelled', 'unknown'
+          // No action needed based on result usually, as we updated optimistically
         } else {
+          // SMS not available on device (e.g., iPad), fallback to Share
+          console.warn('SMS not available, falling back to Share.');
           await Share.share({ message });
         }
+      } else {
+        // No phone number, use Share
+        console.warn('No phone number for contact, using Share.');
+        await Share.share({ message });
       }
     } catch (error: any) {
       console.error('Error generating message:', error);
@@ -297,9 +300,10 @@ function ContactsScreen(props: any) {
         'Error',
         'Failed to generate message. Please try again later. ' + error.message
       );
+      // Consider reverting optimistic updates if necessary based on error type
     } finally {
       setLoadingState(null);
-      setCustomPrompt('');
+      setCustomPrompt(''); // Reset custom prompt if it was used
     }
   };
 
@@ -358,6 +362,9 @@ function ContactsScreen(props: any) {
   };
 
   const showMessageOptions = (contact: ContactItem) => {
+    // Extract first name (handle cases with no spaces)
+    const firstName = contact.name?.split(' ')[0] || contact.name || 'Contact';
+
     const options = [
       'Cancel',
       'Blank Message',
@@ -365,6 +372,8 @@ function ContactsScreen(props: any) {
       'Love Message',
       'Gratitude Message',
       'Birthday Message',
+      'Random Joke',
+      'Random Fact',
       'Custom Message',
     ];
 
@@ -401,7 +410,7 @@ function ContactsScreen(props: any) {
         {
           options,
           cancelButtonIndex: 0,
-          title: 'Generate Message',
+          title: `Message ${firstName}`,
           message: 'Choose a message type to generate',
         },
         (buttonIndex) => {
@@ -422,6 +431,12 @@ function ContactsScreen(props: any) {
               handleMessageGeneration(contact, 'birthday');
               break;
             case 6:
+              handleMessageGeneration(contact, 'joke');
+              break;
+            case 7:
+              handleMessageGeneration(contact, 'fact');
+              break;
+            case 8:
               handleCustomPrompt(contact);
               break;
           }
@@ -429,7 +444,7 @@ function ContactsScreen(props: any) {
       );
     } else {
       Alert.alert(
-        'Generate Message',
+        `Message ${firstName}`,
         'Choose a message type to generate',
         [
           {
@@ -451,6 +466,14 @@ function ContactsScreen(props: any) {
           {
             text: 'Birthday Message',
             onPress: () => handleMessageGeneration(contact, 'birthday'),
+          },
+          {
+            text: 'Random Joke',
+            onPress: () => handleMessageGeneration(contact, 'joke'),
+          },
+          {
+            text: 'Random Fact',
+            onPress: () => handleMessageGeneration(contact, 'fact'),
           },
           {
             text: 'Custom Message',

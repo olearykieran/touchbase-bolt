@@ -15,7 +15,7 @@ interface MessageRequest {
     frequency: string;
   };
   lastMessage?: string;
-  messageType?: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday';
+  messageType?: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday' | 'joke' | 'fact';
   customPrompt?: string;
 }
 
@@ -29,8 +29,12 @@ const getSystemPrompt = (messageType: string) => {
       return 'You are writing a personalized message based on a specific prompt. Keep it natural and concise, limited to 4-5 sentences max.';
     case 'birthday':
       return 'You are writing a warm and cheerful birthday message. Keep it celebratory and personal, with a mix of well-wishes and appreciation. Limit it to 3-4 sentences max.';
+    case 'joke':
+      return 'You are a witty comedian. Tell a short, clean, and generally funny joke suitable for a text message. Keep it brief (1-3 sentences). Avoid controversial topics.';
+    case 'fact':
+      return 'You are a knowledgeable source. Provide one interesting, concise, and easily understandable random fact. Keep it brief (1-3 sentences). Ensure it\'s generally appropriate and verifiable.';
     default:
-      return 'You are writing a friendly catch-up message. Keep it casual and brief, limited to 2-3 sentences.';
+      return 'You are writing a casual, friendly catch-up text message, like a real person would. Keep it brief (1-2 sentences), warm, and natural-sounding. Avoid sounding like an AI. Vary the phrasing.';
   }
 };
 
@@ -40,15 +44,18 @@ const getPrompt = (
   lastMessage?: string,
   customPrompt?: string
 ) => {
+  // Extract first name (handle cases with no spaces)
+  const firstName = contact.name?.split(' ')[0] || contact.name || 'there';
+
   const baseContext = `
-Context about ${contact.name}:
+Context about ${firstName}:
 - Last contacted: ${contact.lastContact}
 - Contact frequency: ${contact.frequency}
 - Previous message (if any): ${lastMessage || 'None'}`;
 
   switch (messageType) {
     case 'love':
-      return `Write a brief, heartfelt message to ${contact.name}.
+      return `Write a brief, heartfelt message to ${firstName}.
 ${baseContext}
 
 Guidelines:
@@ -74,7 +81,7 @@ Guidelines:
 etc.`;
 
     case 'birthday':
-      return `Write a birthday message to ${contact.name}.
+      return `Write a birthday message to ${firstName}.
 ${baseContext}
 
 Guidelines:
@@ -86,7 +93,7 @@ Guidelines:
 - No long explanations`;
 
     case 'custom':
-      return `Write a message to ${contact.name} based on this prompt: "${customPrompt}"
+      return `Write a message to ${firstName} based on this prompt: "${customPrompt}"
 ${baseContext}
 
 Guidelines:
@@ -96,16 +103,34 @@ Guidelines:
 - Be specific but brief
 - No long explanations`;
 
-    default:
-      return `Write a friendly catch-up message to ${contact.name}.
+    case 'joke':
+      return `Tell ${firstName} a short, clean joke suitable for a text message.
 ${baseContext}
 
 Guidelines:
-- Keep it casual and warm
-- Limit to 2-3 sentences maximum
-- Reference time since last contact
-- Suggest catching up briefly
-- No long explanations`;
+- Keep it brief (1-3 sentences).
+- Make it generally funny and lighthearted.
+- Avoid complex or niche humor.`;
+
+    case 'fact':
+      return `Share an interesting random fact with ${firstName}.
+${baseContext}
+
+Guidelines:
+- Keep it brief (1-3 sentences).
+- Ensure the fact is concise and easy to understand.
+- Aim for widely interesting topics (science, history, nature, etc.).`;
+
+    default:
+      return `Write a casual, friendly catch-up text message to ${firstName}.
+${baseContext}
+
+Guidelines:
+- Sound like a real person, not an AI.
+- Keep it brief (1-2 sentences).
+- Be warm and natural.
+- Examples: "Hey ${firstName}, thinking of you! How've you been?", "Hi ${firstName}, just wanted to say hello! Hope you're doing well.", "What's up ${firstName}? Been a while, hope things are good!"
+- Vary the phrasing each time.`;
   }
 };
 
