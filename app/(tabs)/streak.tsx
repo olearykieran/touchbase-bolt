@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ActivityIndicator,
   ScrollView, // Use ScrollView for potential content overflow
@@ -9,6 +8,7 @@ import {
 import { useContactStore } from '@/lib/store'; // Adjust path if necessary
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider'; // Import useTheme
+import { ThemedText } from '@/components/ThemedText'; // Import ThemedText
 import { supabase } from '@/lib/supabase'; // Import supabase client
 import { useHeaderHeight } from '@react-navigation/elements';
 
@@ -100,24 +100,24 @@ const StreakScreen = () => {
       {/* Global Consistency Streak Section */}
       <View style={styles.streakSection}>
         <MaterialIcons name="event-available" size={60} color={colors.accent} />
-        <Text style={[styles.title, { color: colors.text }]}>
+        <ThemedText style={[styles.title, { color: colors.text }]}>
           Daily Consistency
-        </Text>
+        </ThemedText>
         {globalStreakError ? (
-          <Text style={styles.errorText}>{globalStreakError}</Text>
+          <ThemedText style={styles.errorText}>{globalStreakError}</ThemedText>
         ) : (
           <>
-            <Text style={[styles.streakNumber, { color: colors.accent }]}>
+            <ThemedText style={[styles.streakNumber, { color: colors.accent }]}>
               {globalStreak}
-            </Text>
-            <Text style={[styles.daysText, { color: colors.secondaryText }]}>
+            </ThemedText>
+            <ThemedText style={[styles.daysText, { color: colors.secondaryText }]}>
               days
-            </Text>
+            </ThemedText>
           </>
         )}
-        <Text style={[styles.subText, { color: colors.secondaryText }]}>
+        <ThemedText style={[styles.subText, { color: colors.secondaryText }]}>
           Days in a row you've reached out to everyone due.
-        </Text>
+        </ThemedText>
       </View>
     </ScrollView>
   );

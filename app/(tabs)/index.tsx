@@ -1,11 +1,10 @@
 import {
   View,
-  Text,
-  StyleSheet,
   FlatList,
-  TouchableOpacity,
-  Image,
+  StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
+  TextInput,
   RefreshControl,
   Share,
   Linking,
@@ -13,7 +12,7 @@ import {
   Alert,
   ActionSheetIOS,
   Modal,
-  TextInput,
+  Image,
 } from 'react-native';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -48,6 +47,7 @@ import * as SMS from 'expo-sms';
 import PaywallModal from '../../components/PaywallModal';
 import { AppState } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { ThemedText } from '@/components/ThemedText';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -102,10 +102,10 @@ const CustomPromptModal = ({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Custom Message</Text>
-          <Text style={styles.modalSubtitle}>
+          <ThemedText style={styles.modalTitle}>Custom Message</ThemedText>
+          <ThemedText style={styles.modalSubtitle}>
             Enter a brief prompt for your message:
-          </Text>
+          </ThemedText>
           <TextInput
             style={styles.promptInput}
             value={prompt}
@@ -114,9 +114,9 @@ const CustomPromptModal = ({
             placeholder="Type your prompt here..."
             autoFocus
           />
-          <Text style={styles.characterCount}>
+          <ThemedText style={styles.characterCount}>
             {prompt.length}/50 characters
-          </Text>
+          </ThemedText>
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[
@@ -126,14 +126,16 @@ const CustomPromptModal = ({
               ]}
               onPress={onClose}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, { backgroundColor: colors.accent }]}
               onPress={onSubmit}
               disabled={!prompt}
             >
-              <Text style={styles.generateButtonText}>Generate</Text>
+              <ThemedText style={styles.generateButtonText}>
+                Generate
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -566,11 +568,11 @@ function ContactsScreen(props: any) {
 
     let streakBadge = null;
     const currentStreak = item.streak || 0;
-    if (currentStreak >= 365) streakBadge = '1 Year+ 🔥';
-    else if (currentStreak >= 180) streakBadge = '6 Mo+ 🔥';
-    else if (currentStreak >= 30) streakBadge = '30 Day+ 🔥';
-    else if (currentStreak >= 7) streakBadge = '7 Day+ 🔥';
-    else if (currentStreak > 0) streakBadge = `${currentStreak} Day 🔥`;
+    if (currentStreak >= 365) streakBadge = '1 Year+ ';
+    else if (currentStreak >= 180) streakBadge = '6 Mo+ ';
+    else if (currentStreak >= 30) streakBadge = '30 Day+ ';
+    else if (currentStreak >= 7) streakBadge = '7 Day+ ';
+    else if (currentStreak > 0) streakBadge = `${currentStreak} Day `;
 
     return (
       <TouchableOpacity
@@ -578,7 +580,7 @@ function ContactsScreen(props: any) {
       >
         <View style={styles.contactInfo}>
           <View style={styles.contactHeader}>
-            <Text
+            <ThemedText
               style={[
                 styles.name,
                 { color: colors.text, flex: 1, marginRight: 8 },
@@ -587,7 +589,7 @@ function ContactsScreen(props: any) {
               ellipsizeMode="tail"
             >
               {item.name}
-            </Text>
+            </ThemedText>
             <View style={styles.headerActions}>
               {streakBadge && (
                 <View
@@ -596,9 +598,11 @@ function ContactsScreen(props: any) {
                     { backgroundColor: colors.accent + '20' },
                   ]}
                 >
-                  <Text style={[styles.badgeText, { color: colors.accent }]}>
+                  <ThemedText
+                    style={[styles.badgeText, { color: colors.accent }]}
+                  >
                     {streakBadge}
-                  </Text>
+                  </ThemedText>
                 </View>
               )}
               <TouchableOpacity
@@ -617,13 +621,14 @@ function ContactsScreen(props: any) {
           </View>
           <View style={styles.contactDetails}>
             {item.phone && (
-              <Text
+              <ThemedText
                 style={[styles.contactText, { color: colors.secondaryText }]}
               >
                 {item.phone}
+                {item.birthday && ' '} {/* Add space here */}
                 {item.birthday && (
-                  <Text style={styles.birthdayText}>
-                    {`  🎂 ${format(parseISO(item.birthday), 'MMM d')}`}
+                  <ThemedText style={styles.birthdayText}>
+                    🎂 {format(parseISO(item.birthday), 'MMM d')}
                     {(() => {
                       const days = getBirthdayCountdown(item.birthday);
                       if (days === null) return '';
@@ -632,16 +637,16 @@ function ContactsScreen(props: any) {
                       if (days > 0) return ` (${days} days left)`;
                       return '';
                     })()}
-                  </Text>
+                  </ThemedText>
                 )}
-              </Text>
+              </ThemedText>
             )}
             {item.email && (
-              <Text
+              <ThemedText
                 style={[styles.contactText, { color: colors.secondaryText }]}
               >
                 {item.email}
-              </Text>
+              </ThemedText>
             )}
           </View>
           <View style={styles.actionRow}>
@@ -682,9 +687,9 @@ function ContactsScreen(props: any) {
                   ) : (
                     <>
                       <MessageCircle size={20} color="white" />
-                      <Text style={styles.messageButtonText}>
+                      <ThemedText style={styles.messageButtonText}>
                         Generate Message
-                      </Text>
+                      </ThemedText>
                     </>
                   )}
                 </TouchableOpacity>
@@ -696,7 +701,7 @@ function ContactsScreen(props: any) {
                 size={16}
                 color={isContactLate ? colors.error : colors.secondaryText}
               />
-              <Text
+              <ThemedText
                 style={[
                   styles.nextContactText,
                   {
@@ -708,7 +713,7 @@ function ContactsScreen(props: any) {
                 {formatDistanceToNow(nextContactDate, {
                   addSuffix: true,
                 })}
-              </Text>
+              </ThemedText>
             </View>
           </View>
         </View>
@@ -724,12 +729,16 @@ function ContactsScreen(props: any) {
           { backgroundColor: colors.background, paddingTop: headerHeight },
         ]}
       >
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <ThemedText style={[styles.errorText, { color: colors.error }]}>
+          {error}
+        </ThemedText>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: colors.accent }]}
           onPress={fetchContacts}
         >
-          <Text style={[styles.retryButtonText, { color: '#fff' }]}>Retry</Text>
+          <ThemedText style={[styles.retryButtonText, { color: '#fff' }]}>
+            Retry
+          </ThemedText>
         </TouchableOpacity>
       </View>
     );
@@ -861,50 +870,45 @@ function ContactsScreen(props: any) {
               ]}
             >
               {loading ? (
-                <ActivityIndicator style={styles.loader} color={colors.accent} />
-              ) : (
-                showOnboarding && onboardingStep === 1 ? (
-                  <Tooltip
-                    isVisible={true}
-                    content={
-                      <Text>
-                        This is where your contacts will appear. Let's add your
-                        first contact!
-                      </Text>
-                    }
-                    placement="bottom"
-                    onClose={handleNextOnboarding}
-                    showChildInTooltip={false}
-                    useInteractionManager={true}
-                  >
-                    <Text
-                      style={[
-                        styles.emptyText,
-                        { color: colors.secondaryText },
-                      ]}
-                    >
-                      No contacts yet. Add some!
-                    </Text>
-                  </Tooltip>
-                ) : (
-                  <Text
-                    style={[
-                      styles.emptyText,
-                      { color: colors.secondaryText },
-                    ]}
+                <ActivityIndicator
+                  style={styles.loader}
+                  color={colors.accent}
+                />
+              ) : showOnboarding && onboardingStep === 1 ? (
+                <Tooltip
+                  isVisible={true}
+                  content={
+                    <ThemedText>
+                      This is where your contacts will appear. Let's add your
+                      first contact!
+                    </ThemedText>
+                  }
+                  placement="bottom"
+                  onClose={handleNextOnboarding}
+                  showChildInTooltip={false}
+                  useInteractionManager={true}
+                >
+                  <ThemedText
+                    style={[styles.emptyText, { color: colors.secondaryText }]}
                   >
                     No contacts yet. Add some!
-                  </Text>
-                )
+                  </ThemedText>
+                </Tooltip>
+              ) : (
+                <ThemedText
+                  style={[styles.emptyText, { color: colors.secondaryText }]}
+                >
+                  No contacts yet. Add some!
+                </ThemedText>
               )}
               {showOnboarding && onboardingStep === 2 ? (
                 <Tooltip
                   isVisible={true}
                   content={
-                    <Text>
+                    <ThemedText>
                       Tap here to add your first contact. You can import from
                       your device or enter manually.
-                    </Text>
+                    </ThemedText>
                   }
                   placement="top"
                   onClose={handleNextOnboarding}
@@ -916,7 +920,7 @@ function ContactsScreen(props: any) {
                     style={[styles.fab, { marginTop: 24 }]}
                     onPress={() => router.push('/(tabs)/add')}
                   >
-                    <Text style={styles.fabText}>+</Text>
+                    <ThemedText style={styles.fabText}>+</ThemedText>
                   </TouchableOpacity>
                 </Tooltip>
               ) : (
@@ -924,7 +928,7 @@ function ContactsScreen(props: any) {
                   style={[styles.fab, { marginTop: 24 }]}
                   onPress={() => router.push('/(tabs)/add')}
                 >
-                  <Text style={styles.fabText}>+</Text>
+                  <ThemedText style={styles.fabText}>+</ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -938,7 +942,7 @@ function ContactsScreen(props: any) {
                 ]}
                 onPress={() => router.push('/(tabs)/add')}
               >
-                <Text style={styles.fabText}>+</Text>
+                <ThemedText style={styles.fabText}>+</ThemedText>
               </TouchableOpacity>
             ) : null
           }
@@ -1165,7 +1169,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   birthdayText: {
-    color: '#fff',
+    color: '#666',
     fontSize: 13,
     marginLeft: 4,
   },

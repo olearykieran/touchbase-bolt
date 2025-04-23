@@ -26,6 +26,7 @@ import PaywallModal from '../../components/PaywallModal';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { ThemedText } from '@/components/ThemedText';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
@@ -219,7 +220,7 @@ export default function AddContactScreen() {
     >
       <View style={styles.form}>
         {error && error !== MESSAGE_LIMIT_ERROR && (
-          <Text
+          <ThemedText
             style={[
               styles.errorText,
               {
@@ -233,7 +234,7 @@ export default function AddContactScreen() {
           >
             {' '}
             {error}{' '}
-          </Text>
+          </ThemedText>
         )}
         <PaywallModal
           visible={showPaywall}
@@ -246,10 +247,10 @@ export default function AddContactScreen() {
             <Tooltip
               isVisible={true}
               content={
-                <Text>
+                <ThemedText>
                   You can add contacts from your phone by clicking the "Add from
                   Contacts" button.
-                </Text>
+                </ThemedText>
               }
               placement="bottom"
               onClose={handleNextAddOnboarding}
@@ -264,11 +265,11 @@ export default function AddContactScreen() {
                 onPress={() => setShowContactPicker(true)}
               >
                 <Users size={24} color={colors.accent} />
-                <Text
+                <ThemedText
                   style={[styles.contactPickerText, { color: colors.accent }]}
                 >
                   Add from Contacts
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             </Tooltip>
           ) : (
@@ -280,15 +281,15 @@ export default function AddContactScreen() {
               onPress={() => setShowContactPicker(true)}
             >
               <Users size={24} color={colors.accent} />
-              <Text
+              <ThemedText
                 style={[styles.contactPickerText, { color: colors.accent }]}
               >
                 Add from Contacts
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           ))}
 
-        <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+        <ThemedText style={[styles.label, { color: colors.text }]}>Name</ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -299,7 +300,7 @@ export default function AddContactScreen() {
           placeholder="Enter name"
         />
 
-        <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+        <ThemedText style={[styles.label, { color: colors.text }]}>Email</ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -312,7 +313,7 @@ export default function AddContactScreen() {
           autoCapitalize="none"
         />
 
-        <Text style={[styles.label, { color: colors.text }]}>Phone</Text>
+        <ThemedText style={[styles.label, { color: colors.text }]}>Phone</ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -324,17 +325,17 @@ export default function AddContactScreen() {
           keyboardType="phone-pad"
         />
 
-        <Text style={[styles.label, { color: colors.text }]}>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
           Contact Frequency
-        </Text>
+        </ThemedText>
         {showAddOnboarding && addOnboardingStep === 2 ? (
           <Tooltip
             isVisible={true}
             content={
-              <Text>
+              <ThemedText>
                 You can choose how often you want to be reminded to reach out to
                 this person by selecting contact frequency.
-              </Text>
+              </ThemedText>
             }
             placement="bottom"
             onClose={handleNextAddOnboarding}
@@ -353,14 +354,14 @@ export default function AddContactScreen() {
                   ]}
                   onPress={() => setFormData({ ...formData, frequency: freq })}
                 >
-                  <Text
+                  <ThemedText
                     style={[
                       styles.frequencyButtonText,
                       formData.frequency === freq && { color: '#fff' },
                     ]}
                   >
                     {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -378,27 +379,27 @@ export default function AddContactScreen() {
                 ]}
                 onPress={() => setFormData({ ...formData, frequency: freq })}
               >
-                <Text
+                <ThemedText
                   style={[
                     styles.frequencyButtonText,
                     formData.frequency === freq && { color: '#fff' },
                   ]}
                 >
                   {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        <Text style={[styles.label, { color: colors.text }]}>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
           Birthday (optional)
-        </Text>
+        </ThemedText>
         <TouchableOpacity
           style={[styles.input, { backgroundColor: colors.card }]}
           onPress={() => setShowBirthdayPicker(true)}
         >
-          <Text
+          <ThemedText
             style={{
               color: formData.birthday ? colors.text : colors.secondaryText,
             }}
@@ -406,20 +407,20 @@ export default function AddContactScreen() {
             {formData.birthday
               ? formData.birthday.toLocaleDateString()
               : 'Select birthday (optional)'}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
 
-        <Text style={[styles.label, { color: colors.text }]}>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
           First Reminder Time
-        </Text>
+        </ThemedText>
         {showAddOnboarding && addOnboardingStep === 3 ? (
           <Tooltip
             isVisible={true}
             content={
-              <Text>
+              <ThemedText>
                 You can specify when you want to first be reminded to reach out
                 to this contact here.
-              </Text>
+              </ThemedText>
             }
             placement="bottom"
             onClose={handleNextAddOnboarding}
@@ -433,11 +434,11 @@ export default function AddContactScreen() {
               ]}
               onPress={() => setShowFirstContactDatePicker(true)}
             >
-              <Text style={{ color: colors.text }}>
+              <ThemedText style={{ color: colors.text }}>
                 {formData.firstContactDate
                   ? formData.firstContactDate.toLocaleString()
                   : 'Select Date & Time'}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </Tooltip>
         ) : (
@@ -448,11 +449,11 @@ export default function AddContactScreen() {
             ]}
             onPress={() => setShowFirstContactDatePicker(true)}
           >
-            <Text style={{ color: colors.text }}>
+            <ThemedText style={{ color: colors.text }}>
               {formData.firstContactDate
                 ? formData.firstContactDate.toLocaleString()
                 : 'Select Date & Time'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         )}
 
@@ -470,9 +471,11 @@ export default function AddContactScreen() {
           ) : (
             <>
               <UserPlus size={24} color="#fff" />
-              <Text style={[styles.submitButtonText, { color: '#fff' }]}>
+              <ThemedText
+                style={[styles.submitButtonText, { color: '#fff' }]}
+              >
                 Add Contact
-              </Text>
+              </ThemedText>
             </>
           )}
         </TouchableOpacity>
@@ -513,17 +516,19 @@ export default function AddContactScreen() {
               }}
             >
               <TouchableOpacity onPress={() => setShowBirthdayPicker(false)}>
-                <Text style={{ color: colors.accent, fontSize: 16 }}>
+                <ThemedText style={{ color: colors.accent, fontSize: 16 }}>
                   Cancel
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
-              <Text
+              <ThemedText
                 style={{ fontWeight: '600', fontSize: 16, color: colors.text }}
               >
                 Select Birthday
-              </Text>
+              </ThemedText>
               <TouchableOpacity onPress={() => setShowBirthdayPicker(false)}>
-                <Text style={{ color: colors.accent, fontSize: 16 }}>Done</Text>
+                <ThemedText style={{ color: colors.accent, fontSize: 16 }}>
+                  Done
+                </ThemedText>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -571,19 +576,21 @@ export default function AddContactScreen() {
               <TouchableOpacity
                 onPress={() => setShowFirstContactDatePicker(false)}
               >
-                <Text style={{ color: colors.accent, fontSize: 16 }}>
+                <ThemedText style={{ color: colors.accent, fontSize: 16 }}>
                   Cancel
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
-              <Text
+              <ThemedText
                 style={{ fontWeight: '600', fontSize: 16, color: colors.text }}
               >
                 First Reminder Time
-              </Text>
+              </ThemedText>
               <TouchableOpacity
                 onPress={() => setShowFirstContactDatePicker(false)}
               >
-                <Text style={{ color: colors.accent, fontSize: 16 }}>Done</Text>
+                <ThemedText style={{ color: colors.accent, fontSize: 16 }}>
+                  Done
+                </ThemedText>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -625,7 +632,7 @@ export default function AddContactScreen() {
               maxWidth: 340,
             }}
           >
-            <Text
+            <ThemedText
               style={{
                 fontSize: 20,
                 fontWeight: '600',
@@ -634,8 +641,8 @@ export default function AddContactScreen() {
               }}
             >
               Access Contacts
-            </Text>
-            <Text
+            </ThemedText>
+            <ThemedText
               style={{
                 color: colors.secondaryText,
                 fontSize: 15,
@@ -645,7 +652,7 @@ export default function AddContactScreen() {
             >
               To easily add people from your device, please allow KeepTouch to
               access your contacts.
-            </Text>
+            </ThemedText>
             <TouchableOpacity
               style={{
                 backgroundColor: colors.accent,
@@ -656,7 +663,7 @@ export default function AddContactScreen() {
               }}
               onPress={requestContactPermission}
             >
-              <Text
+              <ThemedText
                 style={{
                   color: '#fff',
                   fontWeight: '600',
@@ -664,12 +671,12 @@ export default function AddContactScreen() {
                 }}
               >
                 Enable Contacts Access
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowContactPermissionPrompt(false)}
             >
-              <Text
+              <ThemedText
                 style={{
                   color: colors.secondaryText,
                   fontSize: 15,
@@ -677,7 +684,7 @@ export default function AddContactScreen() {
                 }}
               >
                 Maybe later
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>

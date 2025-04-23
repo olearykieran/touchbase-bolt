@@ -35,6 +35,7 @@ interface ThemeContextProps {
   theme: ThemeType;
   colorScheme: 'light' | 'dark';
   colors: typeof lightColors;
+  defaultFontFamily: string;
   setTheme: (theme: ThemeType) => void;
 }
 
@@ -44,6 +45,7 @@ const STORAGE_KEY = 'user-theme-preference';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemColorScheme = useColorScheme();
+  const defaultFontFamily = 'Satoshi-Medium';
   const [theme, setThemeState] = useState<ThemeType>('system');
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(
     systemColorScheme || 'light'
@@ -81,7 +83,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (t: ThemeType) => setThemeState(t);
 
   return (
-    <ThemeContext.Provider value={{ theme, colorScheme, colors, setTheme }}>
+    <ThemeContext.Provider value={{ theme, colorScheme, colors, defaultFontFamily, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

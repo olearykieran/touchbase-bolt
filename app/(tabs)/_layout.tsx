@@ -37,35 +37,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: '',
           tabBarIcon: ({ color }) => <Home color={color} />,
         }}
       />
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Contacts',
+          title: '',
           tabBarIcon: ({ color }) => <Users color={color} />,
         }}
       />
       <Tabs.Screen
         name="add"
         options={{
-          title: 'Add Contact',
+          title: '',
           tabBarIcon: ({ color }) => <UserPlus color={color} />,
         }}
       />
       <Tabs.Screen
         name="streak"
         options={{
-          title: 'Streaks',
+          title: '',
           tabBarIcon: ({ color }) => <Flame color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: '',
           tabBarIcon: ({ color }) => <Settings color={color} />,
         }}
       />

@@ -3,11 +3,11 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { supabase } from '@/lib/supabase';
+import { ThemedText } from '@/components/ThemedText';
 import {
   Platform,
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
+import { useFonts } from 'expo-font';
 import {
   ThemeProvider,
   useTheme,
@@ -153,17 +154,17 @@ function RootLayoutNav({
       >
         <View style={modalStyles.overlay}>
           <View style={modalStyles.modalBox}>
-            <Text style={modalStyles.title}>Enable Notifications</Text>
-            <Text style={modalStyles.body}>
+            <ThemedText style={modalStyles.title}>Enable Notifications</ThemedText>
+            <ThemedText style={modalStyles.body}>
               We use notifications to remind you to reach out to your contacts
               and celebrate birthdays. Please enable notifications to stay
               connected!
-            </Text>
+            </ThemedText>
             <TouchableOpacity
               style={modalStyles.button}
               onPress={handleRequestNotifications}
             >
-              <Text style={modalStyles.buttonText}>Enable Notifications</Text>
+              <ThemedText style={modalStyles.buttonText}>Enable Notifications</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,9 +174,23 @@ function RootLayoutNav({
 }
 
 export default function RootLayout() {
-  useFrameworkReady();
+  const isFrameworkReady = useFrameworkReady();
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifChecked, setNotifChecked] = useState(false);
+
+  // Load Satoshi fonts
+  const [fontsLoaded, fontError] = useFonts({
+    'Satoshi-Regular': require('../assets/fonts/Satoshi-Regular.otf'),
+    'Satoshi-Italic': require('../assets/fonts/Satoshi-Italic.otf'),
+    'Satoshi-Light': require('../assets/fonts/Satoshi-Light.otf'),
+    'Satoshi-LightItalic': require('../assets/fonts/Satoshi-LightItalic.otf'),
+    'Satoshi-Medium': require('../assets/fonts/Satoshi-Medium.otf'),
+    'Satoshi-MediumItalic': require('../assets/fonts/Satoshi-MediumItalic.otf'),
+    'Satoshi-Bold': require('../assets/fonts/Satoshi-Bold.otf'),
+    'Satoshi-BoldItalic': require('../assets/fonts/Satoshi-BoldItalic.otf'),
+    'Satoshi-Black': require('../assets/fonts/Satoshi-Black.otf'),
+    'Satoshi-BlackItalic': require('../assets/fonts/Satoshi-BlackItalic.otf'),
+  });
 
   // Onboarding notification permission logic for iOS
   useEffect(() => {
@@ -191,6 +206,14 @@ export default function RootLayout() {
     checkNotifPermissions();
   }, [notifChecked]);
 
+  // Log font loading errors
+  useEffect(() => {
+    if (fontError) {
+      console.error('Font loading error:', fontError);
+      // Optionally, show an error message to the user
+    }
+  }, [fontError]);
+
   const handleRequestNotifications = async () => {
     setShowNotifModal(false);
     const { status } = await Notifications.requestPermissionsAsync();
@@ -201,6 +224,13 @@ export default function RootLayout() {
       );
     }
   };
+
+  // Wait until fonts are ready
+  if (!fontsLoaded) {
+    // You might want to show a Splash Screen or loading indicator here
+    // For now, returning null keeps the splash screen visible (managed by useFrameworkReady)
+    return null;
+  }
 
   return (
     <ThemeProvider>
@@ -236,13 +266,11 @@ const getModalStyles = (colors: ThemeColors, colorScheme: 'light' | 'dark') =>
       fontWeight: 'bold',
       marginBottom: 12,
       textAlign: 'center',
-      color: colors.text,
     },
     body: {
       fontSize: 16,
       marginBottom: 24,
       textAlign: 'center',
-      color: colors.secondaryText,
     },
     button: {
       backgroundColor: colors.accent,

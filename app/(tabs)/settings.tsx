@@ -1,6 +1,5 @@
 import {
   View,
-  Text,
   StyleSheet,
   Switch,
   TouchableOpacity,
@@ -34,6 +33,7 @@ import {
   sendTestNotification,
 } from '../../lib/notificationUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { ThemedText } from '@/components/ThemedText';
 
 // Configure notification handler
 // Notifications.setNotificationHandler({
@@ -376,15 +376,11 @@ export default function SettingsScreen() {
       ]}
     >
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Notifications
-        </Text>
+        <ThemedText style={[styles.sectionTitle]}>Notifications</ThemedText>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
             <Bell size={24} color={colors.accent} />
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Enable Notifications
-            </Text>
+            <ThemedText style={[styles.settingText]}>Enable Notifications</ThemedText>
           </View>
           <Switch
             value={notifications}
@@ -399,13 +395,9 @@ export default function SettingsScreen() {
 
       {/* Theme Section */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Appearance
-        </Text>
+        <ThemedText style={[styles.sectionTitle]}>Appearance</ThemedText>
         <View style={styles.setting}>
-          <Text style={[styles.settingText, { color: colors.text }]}>
-            Theme
-          </Text>
+          <ThemedText style={[styles.settingText]}>Theme</ThemedText>
         </View>
         <View
           style={{
@@ -429,7 +421,7 @@ export default function SettingsScreen() {
               }}
               onPress={() => setTheme(option)}
             >
-              <Text
+              <ThemedText
                 style={{
                   color: theme === option ? '#fff' : colors.text,
                   fontWeight: '600',
@@ -439,16 +431,14 @@ export default function SettingsScreen() {
                 {option === 'system'
                   ? 'System Default'
                   : option.charAt(0).toUpperCase() + option.slice(1)}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          General
-        </Text>
+        <ThemedText style={[styles.sectionTitle]}>General</ThemedText>
         <TouchableOpacity
           style={styles.setting}
           onPress={async () => {
@@ -466,9 +456,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.settingInfo}>
             <Share2 size={24} color={colors.accent} />
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Share App
-            </Text>
+            <ThemedText style={[styles.settingText]}>Share App</ThemedText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -481,9 +469,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.settingInfo}>
             <HelpCircle size={24} color={colors.accent} />
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Help & Support
-            </Text>
+            <ThemedText style={[styles.settingText]}>Help & Support</ThemedText>
           </View>
         </TouchableOpacity>
       </View>
@@ -491,7 +477,7 @@ export default function SettingsScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={24} color="#64403E" />
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -501,27 +487,23 @@ export default function SettingsScreen() {
           onPress={handleDeleteAccount}
         >
           <Trash2 size={24} color="#64403E" />
-          <Text style={styles.deleteText}>Delete Account</Text>
+          <ThemedText style={styles.deleteText}>Delete Account</ThemedText>
         </TouchableOpacity>
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Subscription
-        </Text>
+        <ThemedText style={[styles.sectionTitle]}>Subscription</ThemedText>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
             <CreditCard size={24} color={colors.accent} />
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Current Plan
-            </Text>
+            <ThemedText style={[styles.settingText]}>Current Plan</ThemedText>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text
+            <ThemedText
               style={[styles.settingValue, { color: colors.secondaryText }]}
             >
               {isLoading ? 'Refreshing...' : subscriptionStatus}
-            </Text>
+            </ThemedText>
             <TouchableOpacity
               style={{ marginLeft: 8 }}
               onPress={() => {
@@ -543,15 +525,13 @@ export default function SettingsScreen() {
           <View style={styles.setting}>
             <View style={styles.settingInfo}>
               <Calendar size={24} color={colors.accent} />
-              <Text style={[styles.settingText, { color: colors.text }]}>
-                Active Until
-              </Text>
+              <ThemedText style={[styles.settingText]}>Active Until</ThemedText>
             </View>
-            <Text
+            <ThemedText
               style={[styles.settingValue, { color: colors.secondaryText }]}
             >
               {subscriptionEnd}
-            </Text>
+            </ThemedText>
           </View>
         )}
 
@@ -567,15 +547,15 @@ export default function SettingsScreen() {
               disabled={isLoading}
             >
               <Ban size={24} color="#64403E" />
-              <Text style={styles.cancelText}>Cancel Subscription</Text>
+              <ThemedText style={styles.cancelText}>Cancel Subscription</ThemedText>
             </TouchableOpacity>
           )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.version, { color: colors.secondaryText }]}>
+        <ThemedText style={[styles.version, { color: colors.secondaryText }]}>
           Version 1.0.0
-        </Text>
+        </ThemedText>
       </View>
 
       {/* Test Notification Button - Only in development mode */}
@@ -591,9 +571,9 @@ export default function SettingsScreen() {
             }}
             onPress={handleTestNotification}
           >
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+            <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
               Send Test Notification
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
       )}
@@ -617,7 +597,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#000',
   },
   setting: {
     flexDirection: 'row',
@@ -632,7 +611,6 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     marginLeft: 12,
-    color: '#000',
   },
   settingValue: {
     fontSize: 16,

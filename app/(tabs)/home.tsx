@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { formatDistanceToNow, isPast, isValid } from 'date-fns';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { ThemedText } from '@/components/ThemedText';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -51,9 +51,9 @@ export default function HomeScreen() {
       !isValid(nextContact.nextContact)
     ) {
       return (
-        <Text style={[styles.infoText, { color: colors.secondaryText }]}>
+        <ThemedText style={[styles.infoText, { color: colors.secondaryText }]}>
           No upcoming reminders.
-        </Text>
+        </ThemedText>
       );
     }
 
@@ -68,13 +68,13 @@ export default function HomeScreen() {
 
     return (
       <View style={styles.nextContactContainer}>
-        <Text style={[styles.nextContactLabel, { color: colors.text }]}>
-          Next Touch Base:
-        </Text>
-        <Text style={[styles.nextContactName, { color: colors.text }]}>
+        <ThemedText style={[styles.nextContactLabel, { color: colors.text }]}>
+          Next Contact:
+        </ThemedText>
+        <ThemedText style={[styles.nextContactName, { color: colors.text }]}>
           {nextContact.name}
-        </Text>
-        <Text style={[styles.nextContactDate, dateStyle]}>{timeDistance}</Text>
+        </ThemedText>
+        <ThemedText style={[styles.nextContactDate, dateStyle]}>{timeDistance}</ThemedText>
       </View>
     );
   };
@@ -98,13 +98,13 @@ export default function HomeScreen() {
           source={require('@/assets/images/icon.png')}
           style={styles.logo}
         />
-        <Text style={[styles.title, { color: colors.text }]}>KeepTouch</Text>
+        <ThemedText style={[styles.title, { color: colors.text }]}>KeepTouch</ThemedText>
       </View>
 
       <View style={styles.infoSection}>
-        <Text style={[styles.infoText, { color: colors.text }]}>
+        <ThemedText style={[styles.infoText, { color: colors.text }]}>
           Total Contacts: {contacts.length}
-        </Text>
+        </ThemedText>
         {renderNextContactInfo()}
       </View>
 
@@ -116,9 +116,9 @@ export default function HomeScreen() {
             onPress={() => router.push(button.path as any)}
           >
             <button.icon size={32} color={colors.accent} />
-            <Text style={[styles.navButtonText, { color: colors.text }]}>
+            <ThemedText style={[styles.navButtonText, { color: colors.text }]}>
               {button.name}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         ))}
       </View>
