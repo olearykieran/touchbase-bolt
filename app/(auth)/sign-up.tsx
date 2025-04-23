@@ -81,7 +81,7 @@ function SignUpInner() {
               Create Account
             </Text>
             <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
-              Join Everloop to stay connected!
+              Join KeepTouch to stay connected!
             </Text>
             {error && <Text style={styles.errorText}>{error}</Text>}
             {success && (
@@ -164,7 +164,7 @@ function SignUpInner() {
                     { color: colors.accent, opacity: fadeAnim },
                   ]}
                 >
-                  Everloop
+                  KeepTouch
                 </Animated.Text>
               </>
             )}

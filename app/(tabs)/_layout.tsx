@@ -1,4 +1,5 @@
 import React from 'react';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Home, Users, UserPlus, Flame, Settings } from 'lucide-react-native';
 import { useTheme } from '../../components/ThemeProvider';
@@ -8,7 +9,7 @@ import SettingsScreen from './settings';
 import StreakScreen from './streak'; // Import the new screen
 
 export default function TabLayout() {
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
 
   return (
     <Tabs
@@ -20,9 +21,16 @@ export default function TabLayout() {
           borderTopColor: colors.border,
         },
         headerStyle: {
-          backgroundColor: colors.card,
           borderBottomColor: colors.border,
         },
+        headerTransparent: true,
+        headerBackground: () => (
+          <BlurView
+            intensity={20} // Adjust intensity as needed (0-100)
+            tint={colorScheme} // Match theme
+            style={{ flex: 1, backgroundColor: `${colors.card}40` }} // Apply semi-transparent bg ON the blur
+          />
+        ),
         headerTintColor: colors.text,
       }}
     >

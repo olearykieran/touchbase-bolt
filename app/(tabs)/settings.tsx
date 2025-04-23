@@ -19,6 +19,9 @@ import {
   LogOut,
   Calendar,
   Trash2,
+  CreditCard,
+  Ban,
+  RefreshCw,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import * as Notifications from 'expo-notifications';
@@ -30,6 +33,7 @@ import {
   scheduleNotificationsForContacts,
   sendTestNotification,
 } from '../../lib/notificationUtils';
+import { useHeaderHeight } from '@react-navigation/elements';
 
 // Configure notification handler
 // Notifications.setNotificationHandler({
@@ -42,8 +46,14 @@ import {
 
 export default function SettingsScreen() {
   const { theme, colorScheme, setTheme, colors } = useTheme();
+  const headerHeight = useHeaderHeight();
   const [notifications, setNotifications] = useState(true);
   const [notificationStatus, setNotificationStatus] = useState<string>('');
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<string>('Loading...');
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // To force re-fetch
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -71,7 +81,15 @@ export default function SettingsScreen() {
         receivedSubscription.remove();
       };
     }
+
+    // Fetch subscription status on mount
+    fetchSubscriptionStatus();
   }, []);
+
+  useEffect(() => {
+    // Fetch subscription status whenever refreshTrigger changes
+    fetchSubscriptionStatus();
+  }, [refreshTrigger]);
 
   const checkNotificationPermissions = async () => {
     const { status } = await Notifications.getPermissionsAsync();
@@ -219,9 +237,143 @@ export default function SettingsScreen() {
     }
   };
 
+  const fetchSubscriptionStatus = async () => {
+    try {
+      setIsLoading(true); // Start loading indicator
+      console.log('Fetching subscription status...');
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setSubscriptionStatus('Error (Session)');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!session) {
+        console.error('No active session');
+        setSubscriptionStatus('Not signed in');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('User ID:', session.user.id);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(
+          'subscription_status, subscription_end, weekly_message_count, contact_count'
+        )
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        setSubscriptionStatus('Error (DB)');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data) {
+        console.error('No data returned');
+        setSubscriptionStatus('No data');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Profile data:', data);
+
+      // Format the subscription status nicely
+      let displayStatus = 'Free';
+      if (data.subscription_status === 'monthly') {
+        displayStatus = 'Monthly ($2.99/month)';
+      } else if (data.subscription_status === 'yearly') {
+        displayStatus = 'Yearly ($12.99/year)';
+      }
+
+      console.log('Setting subscription status to:', displayStatus);
+      setSubscriptionStatus(displayStatus);
+
+      // Format the end date if it exists
+      if (data.subscription_end) {
+        const endDate = new Date(data.subscription_end);
+        console.log('Subscription ends:', endDate.toLocaleDateString());
+        setSubscriptionEnd(endDate.toLocaleDateString());
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription status:', err);
+      setSubscriptionStatus('Error (Exception)');
+    } finally {
+      setIsLoading(false); // End loading regardless of outcome
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.',
+      [
+        { text: 'No, Keep It', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+              if (!session) throw new Error('Please sign in again');
+
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/cancel-subscription`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  errorData.error || 'Failed to cancel subscription'
+                );
+              }
+
+              Alert.alert(
+                'Success',
+                'Your subscription has been canceled. You will still have access until the end of your current billing period.'
+              );
+
+              // Refresh the subscription status
+              fetchSubscriptionStatus();
+            } catch (err: any) {
+              Alert.alert(
+                'Error',
+                err.message || 'Failed to cancel subscription'
+              );
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: headerHeight },
+      ]}
     >
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -302,9 +454,9 @@ export default function SettingsScreen() {
           onPress={async () => {
             try {
               await Share.share({
-                title: 'Everloop',
+                title: 'KeepTouch',
                 message:
-                  'Stay in touch with the people who matter most! Download Everloop: https://apps.apple.com/app/id6501184872',
+                  'Stay in touch with the people who matter most! Download KeepTouch: https://apps.apple.com/app/id6501184872',
                 url: 'https://apps.apple.com/app/id6501184872',
               });
             } catch (error) {
@@ -338,7 +490,7 @@ export default function SettingsScreen() {
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={24} color="#FF3B30" />
+          <LogOut size={24} color="#64403E" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -348,9 +500,76 @@ export default function SettingsScreen() {
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
         >
-          <Trash2 size={24} color="#FF3B30" />
+          <Trash2 size={24} color="#64403E" />
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Subscription
+        </Text>
+        <View style={styles.setting}>
+          <View style={styles.settingInfo}>
+            <CreditCard size={24} color={colors.accent} />
+            <Text style={[styles.settingText, { color: colors.text }]}>
+              Current Plan
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text
+              style={[styles.settingValue, { color: colors.secondaryText }]}
+            >
+              {isLoading ? 'Refreshing...' : subscriptionStatus}
+            </Text>
+            <TouchableOpacity
+              style={{ marginLeft: 8 }}
+              onPress={() => {
+                console.log('Manual refresh initiated');
+                // Increment refresh trigger to force a new fetch
+                setRefreshTrigger((prev) => prev + 1);
+              }}
+              disabled={isLoading}
+            >
+              <RefreshCw
+                size={18}
+                color={isLoading ? colors.secondaryText : colors.accent}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {subscriptionEnd && subscriptionStatus !== 'Free' && (
+          <View style={styles.setting}>
+            <View style={styles.settingInfo}>
+              <Calendar size={24} color={colors.accent} />
+              <Text style={[styles.settingText, { color: colors.text }]}>
+                Active Until
+              </Text>
+            </View>
+            <Text
+              style={[styles.settingValue, { color: colors.secondaryText }]}
+            >
+              {subscriptionEnd}
+            </Text>
+          </View>
+        )}
+
+        {subscriptionStatus !== 'Free' &&
+          subscriptionStatus !== 'Loading...' &&
+          subscriptionStatus !== 'Error' && (
+            <TouchableOpacity
+              style={[
+                styles.cancelSubscription,
+                { opacity: isLoading ? 0.5 : 1 },
+              ]}
+              onPress={handleCancelSubscription}
+              disabled={isLoading}
+            >
+              <Ban size={24} color="#64403E" />
+              <Text style={styles.cancelText}>Cancel Subscription</Text>
+            </TouchableOpacity>
+          )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
@@ -415,6 +634,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     color: '#000',
   },
+  settingValue: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -424,7 +648,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 16,
     marginLeft: 12,
-    color: '#FF3B30',
+    color: '#64403E',
     fontWeight: '600',
   },
   deleteButton: {
@@ -437,7 +661,22 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 16,
     marginLeft: 12,
-    color: '#FF3B30',
+    color: '#64403E',
+    fontWeight: '600',
+  },
+  cancelSubscription: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  cancelText: {
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#64403E',
     fontWeight: '600',
   },
   version: {

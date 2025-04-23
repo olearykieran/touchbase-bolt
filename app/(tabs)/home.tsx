@@ -17,9 +17,11 @@ import {
   Settings as SettingsIcon,
 } from 'lucide-react-native';
 import { formatDistanceToNow, isPast, isValid } from 'date-fns';
+import { useHeaderHeight } from '@react-navigation/elements';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const headerHeight = useHeaderHeight();
   const contacts = useContactStore((state) => state.contacts);
 
   // Sort contacts to find the next upcoming one
@@ -86,14 +88,17 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: headerHeight },
+      ]}
     >
       <View style={styles.header}>
         <Image
           source={require('@/assets/images/icon.png')}
           style={styles.logo}
         />
-        <Text style={[styles.title, { color: colors.text }]}>Everloop</Text>
+        <Text style={[styles.title, { color: colors.text }]}>KeepTouch</Text>
       </View>
 
       <View style={styles.infoSection}>

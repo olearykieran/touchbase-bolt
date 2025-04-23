@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Alert,
   AppState,
+  Linking,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
@@ -60,6 +61,7 @@ function RootLayoutNav({
 }: RootLayoutNavProps) {
   // <-- Receive props
   const { colorScheme, colors } = useTheme(); // <-- useTheme is safe here
+  const router = useRouter();
 
   // Configure notification handler once
   useEffect(() => {
@@ -114,6 +116,21 @@ function RootLayoutNav({
 
   // Protected route logic
   useProtectedRoute(user);
+
+  // Listen for Stripe deep links
+  useEffect(() => {
+    const handleDeepLink = ({ url }: { url: string }) => {
+      if (url.includes('payment-success')) {
+        console.log('Payment success deep link received:', url);
+        router.replace('/(tabs)');
+      } else if (url.includes('payment-cancel')) {
+        console.log('Payment cancel deep link received:', url);
+        router.replace('/(tabs)');
+      }
+    };
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => subscription.remove();
+  }, [router]);
 
   // *** Dynamically create styles based on theme ***
   const modalStyles = getModalStyles(colors, colorScheme);

@@ -10,22 +10,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Theme color palettes
 const lightColors = {
-  background: '#F2F2F7',
-  card: '#fff',
-  text: '#000',
-  secondaryText: '#666',
-  accent: '#9d9e9e',
-  error: '#FF3B30',
+  background: '#e6decd',
+  card: '#FFFFE3',
+  text: '#939292',
+  secondaryText: '#939292',
+  accent: '#939292',
+  error: '#64403E',
   border: '#E5E5EA',
 };
 
 const darkColors = {
-  background: '#18191A',
-  card: '#232526',
-  text: '#fff',
-  secondaryText: '#aaa',
-  accent: '#9d9e9e',
-  error: '#FF3B30',
+  background: '#000',
+  card: '#10100e',
+  text: '#FFFFE3',
+  secondaryText: '#FFFFE3',
+  accent: '#939292',
+  error: '#64403E',
   border: '#333',
 };
 

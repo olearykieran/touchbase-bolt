@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Canceled</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+</head>
+<body>
+  <p>Returning to the app…</p>
+  <script>
+    // try once immediately
+    window.location.href = 'touchbasebolt://payment-cancel';
+    // retry in case the first one was swallowed
+    setTimeout(() => {
+      window.location.href = 'touchbasebolt://payment-cancel';
+    }, 1000);
+  </script>
+  <p>
+    If you’re not redirected automatically,  
+    <a href="touchbasebolt://payment-cancel">tap here to return to the app</a>.
+  </p>
+</body>
+</html>

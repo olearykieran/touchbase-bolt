@@ -9,7 +9,7 @@ import {
   Platform,
   Modal,
   Linking,
-  Alert, // Add Alert import
+  Alert,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { useState } from 'react';
@@ -23,6 +23,9 @@ import { useTheme } from '../../components/ThemeProvider';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PaywallModal from '../../components/PaywallModal';
+import Constants from 'expo-constants';
+import { supabase } from '@/lib/supabase';
+import { useHeaderHeight } from '@react-navigation/elements';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
@@ -39,6 +42,7 @@ export default function AddContactScreen() {
   const [showContactPermissionPrompt, setShowContactPermissionPrompt] =
     useState(false);
   const { colors, colorScheme } = useTheme();
+  const headerHeight = useHeaderHeight();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -68,6 +72,7 @@ export default function AddContactScreen() {
     console.log('Submitting contact data:', submitData);
 
     await addContact(submitData);
+    ``;
     if (!error) {
       router.push('/(tabs)/' as any);
     }
@@ -167,29 +172,50 @@ export default function AddContactScreen() {
   };
 
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
-    const monthlyLink = 'https://buy.stripe.com/6oEcNFb5l2D34rm5kk';
-    const yearlyLink = 'https://buy.stripe.com/8wM7tl1uLelL1fa7st';
-    const url = plan === 'monthly' ? monthlyLink : yearlyLink;
-
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert(`Don't know how to open this URL: ${url}`);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error('Please sign in again');
+      const extra = Constants.expoConfig?.extra as Record<string, string>;
+      const priceId =
+        plan === 'monthly'
+          ? extra.stripeMonthlyPriceId
+          : extra.stripeYearlyPriceId;
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ priceId, userId: session.user.id }),
+        }
+      );
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Checkout session failed');
       }
-    } catch (error) {
-      console.error('Failed to open payment link:', error);
-      Alert.alert('Error', 'Could not open payment page.');
+      const { url } = await response.json();
+      await Linking.openURL(url);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+      console.error('Checkout Error:', err);
+    } finally {
+      clearError();
+      setShowPaywall(false);
     }
-
-    // Keep modal closing logic
-    setShowPaywall(false);
   };
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: headerHeight },
+      ]}
+      contentContainerStyle={{ paddingBottom: 20 }}
     >
       <View style={styles.form}>
         {error && error !== MESSAGE_LIMIT_ERROR && (
@@ -617,7 +643,7 @@ export default function AddContactScreen() {
                 marginBottom: 20,
               }}
             >
-              To easily add people from your device, please allow Everloop to
+              To easily add people from your device, please allow KeepTouch to
               access your contacts.
             </Text>
             <TouchableOpacity

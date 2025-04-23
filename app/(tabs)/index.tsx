@@ -38,6 +38,7 @@ import {
 } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import React from 'react';
+import Constants from 'expo-constants';
 import { useTheme } from '../../components/ThemeProvider';
 import EditContactModal from '../../components/EditContactModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,6 +46,8 @@ import { router } from 'expo-router';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import * as SMS from 'expo-sms';
 import PaywallModal from '../../components/PaywallModal';
+import { AppState } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -88,47 +91,56 @@ const CustomPromptModal = ({
   onSubmit: () => void;
   prompt: string;
   onChangePrompt: (text: string) => void;
-}) => (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="fade"
-    onRequestClose={onClose}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Custom Message</Text>
-        <Text style={styles.modalSubtitle}>
-          Enter a brief prompt for your message:
-        </Text>
-        <TextInput
-          style={styles.promptInput}
-          value={prompt}
-          onChangeText={onChangePrompt}
-          maxLength={50}
-          placeholder="Type your prompt here..."
-          autoFocus
-        />
-        <Text style={styles.characterCount}>{prompt.length}/50 characters</Text>
-        <View style={styles.modalButtons}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={onClose}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.generateButton]}
-            onPress={onSubmit}
-            disabled={!prompt}
-          >
-            <Text style={styles.generateButtonText}>Generate</Text>
-          </TouchableOpacity>
+}) => {
+  const { colors } = useTheme();
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Custom Message</Text>
+          <Text style={styles.modalSubtitle}>
+            Enter a brief prompt for your message:
+          </Text>
+          <TextInput
+            style={styles.promptInput}
+            value={prompt}
+            onChangeText={onChangePrompt}
+            maxLength={50}
+            placeholder="Type your prompt here..."
+            autoFocus
+          />
+          <Text style={styles.characterCount}>
+            {prompt.length}/50 characters
+          </Text>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[
+                styles.modalButton,
+                styles.cancelButton,
+                { backgroundColor: colors.card },
+              ]}
+              onPress={onClose}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: colors.accent }]}
+              onPress={onSubmit}
+              disabled={!prompt}
+            >
+              <Text style={styles.generateButtonText}>Generate</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 // Helper to calculate days until next birthday
 function getBirthdayCountdown(birthdayStr: string | undefined): number | null {
@@ -169,11 +181,12 @@ function ContactsScreen(props: any) {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(
     null
   );
-  const { colors } = useTheme();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const { colors, colorScheme } = useTheme();
+  const headerHeight = useHeaderHeight();
 
   // Onboarding state
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState(0); // 0: none, 1: list, 2: add btn
   const onboardingShownKey = 'onboarding_shown_v2';
 
   // Check first-time user (no contacts and not shown onboarding)
@@ -188,7 +201,44 @@ function ContactsScreen(props: any) {
   }, [contacts, loading]);
 
   useEffect(() => {
-    fetchContacts();
+    const initialRefresh = async () => {
+      console.log('Initial app mount - refreshing profile data');
+      // Force clear any error state that might be cached
+      setError(null);
+      clearError();
+
+      // Wait for profile refresh to complete
+      const success = await refreshUserProfile();
+      console.log('Initial profile refresh completed:', success);
+
+      // Force refresh contacts to ensure UI is up to date
+      await fetchContacts();
+    };
+
+    initialRefresh();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      async (nextAppState) => {
+        if (nextAppState === 'active') {
+          const needsRefresh = await AsyncStorage.getItem(
+            'need_profile_refresh'
+          );
+          if (needsRefresh === 'true') {
+            console.log('App became active - refreshing profile after payment');
+            await refreshUserProfile();
+            // Clear the flag
+            await AsyncStorage.removeItem('need_profile_refresh');
+          }
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const onRefresh = async () => {
@@ -231,17 +281,32 @@ function ContactsScreen(props: any) {
     prompt?: string
   ) => {
     try {
-      setLoadingState({ contactId: contact.id, messageType });
+      setSelectedContact(contact);
+      setLoadingState({
+        contactId: contact.id,
+        messageType,
+      });
 
-      const customPromptToUse = prompt || customPrompt;
+      // Before generating message, refresh profile to ensure we have latest subscription status
+      await refreshUserProfile();
 
+      // IMPORTANT: Check subscription status LOCALLY before making the API call
+      // Get profile to directly check subscription status
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-      if (sessionError || !session) {
+      if (!session) {
+        Alert.alert('Error', 'You must be logged in to generate messages.');
+        setLoadingState(null);
+        return;
+      }
+
+      if (sessionError) {
         throw new Error('Please sign in again');
       }
+
+      const customPromptToUse = prompt || customPrompt;
 
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-message`,
@@ -546,7 +611,7 @@ function ContactsScreen(props: any) {
                 style={styles.deleteButton}
                 onPress={() => handleDelete(item)}
               >
-                <Trash2 size={20} color="#FF3B30" />
+                <Trash2 size={20} color="#64403E" />
               </TouchableOpacity>
             </View>
           </View>
@@ -654,7 +719,10 @@ function ContactsScreen(props: any) {
   if (error && error !== MESSAGE_LIMIT_ERROR) {
     return (
       <View
-        style={[styles.centerContainer, { backgroundColor: colors.background }]}
+        style={[
+          styles.centerContainer,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
       >
         <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
         <TouchableOpacity
@@ -667,33 +735,107 @@ function ContactsScreen(props: any) {
     );
   }
 
-  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
-    const monthlyLink = 'https://buy.stripe.com/6oEcNFb5l2D34rm5kk';
-    const yearlyLink = 'https://buy.stripe.com/8wM7tl1uLelL1fa7st';
-    const url = plan === 'monthly' ? monthlyLink : yearlyLink;
+  // Create a profile refresh function to update subscription status
+  const refreshUserProfile = async () => {
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert(`Don't know how to open this URL: ${url}`);
+      console.log('REFRESH: Forcing complete profile refresh');
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('REFRESH: Session error:', sessionError);
+        return false;
       }
+
+      // Force refresh the profile data with no caching
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !data) {
+        console.error('REFRESH: Profile fetch error:', error);
+        return false;
+      }
+
+      console.log('REFRESH: Current user profile:', data);
+
+      // If subscription is active, forcefully clear any payment-related errors
+      if (data.subscription_status !== 'free') {
+        console.log('REFRESH: User has active subscription, clearing errors');
+        setError(null);
+        // Force clear the error immediately
+        clearError();
+        return true;
+      } else {
+        console.log('REFRESH: User still on free tier');
+      }
+
+      return true;
     } catch (err) {
-      console.error('Failed to open payment link:', err);
-      Alert.alert('Error', 'Could not open payment page.');
+      console.error('REFRESH: Profile refresh error:', err);
+      return false;
     }
-    clearError();
   };
 
-  // derive paywall visibility and type from store error
-  const showPaywall = error === MESSAGE_LIMIT_ERROR;
-  const paywallType: 'contacts' | 'messages' = 'messages';
-  const handleClosePaywall = () => clearError();
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error('Please sign in again');
+      const extra = Constants.expoConfig?.extra as Record<string, string>;
+      const priceId =
+        plan === 'monthly'
+          ? extra.stripeMonthlyPriceId
+          : extra.stripeYearlyPriceId;
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ priceId, userId: session.user.id }),
+        }
+      );
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Checkout session failed');
+      }
+      const { url } = await response.json();
+      await Linking.openURL(url);
+
+      // Set a flag that we need to refresh profile on next app focus
+      await AsyncStorage.setItem('need_profile_refresh', 'true');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+      console.error('Checkout Error:', err);
+    }
+  };
+
+  const handleClosePaywall = () => {
+    setError(null);
+  };
+
+  const handleNextOnboarding = () => {
+    if (onboardingStep < 3) {
+      setOnboardingStep(onboardingStep + 1);
+    } else {
+      setShowOnboarding(false);
+      setOnboardingStep(1);
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlatList
+          style={{ flex: 1, paddingTop: headerHeight }}
           data={
             [...contacts].sort((a, b) => {
               const aDate = new Date(a.nextContact);
@@ -711,12 +853,17 @@ function ContactsScreen(props: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          ListEmptyComponent={
-            loading ? (
-              <ActivityIndicator style={styles.loader} color={colors.accent} />
-            ) : (
-              <View style={{ alignItems: 'center', marginTop: 40 }}>
-                {showOnboarding && onboardingStep === 1 ? (
+          ListEmptyComponent={() => (
+            <View
+              style={[
+                styles.centerContainer,
+                { flex: 1, paddingTop: headerHeight },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator style={styles.loader} color={colors.accent} />
+              ) : (
+                showOnboarding && onboardingStep === 1 ? (
                   <Tooltip
                     isVisible={true}
                     content={
@@ -741,45 +888,47 @@ function ContactsScreen(props: any) {
                   </Tooltip>
                 ) : (
                   <Text
-                    style={[styles.emptyText, { color: colors.secondaryText }]}
+                    style={[
+                      styles.emptyText,
+                      { color: colors.secondaryText },
+                    ]}
                   >
                     No contacts yet. Add some!
                   </Text>
-                )}
-                {/* FAB below empty state */}
-                {showOnboarding && onboardingStep === 2 ? (
-                  <Tooltip
-                    isVisible={true}
-                    content={
-                      <Text>
-                        Tap here to add your first contact. You can import from
-                        your device or enter manually.
-                      </Text>
-                    }
-                    placement="top"
-                    onClose={handleNextOnboarding}
-                    showChildInTooltip={false}
-                    useInteractionManager={true}
-                    tooltipStyle={{ marginLeft: -60 }}
-                  >
-                    <TouchableOpacity
-                      style={[styles.fab, { marginTop: 24 }]}
-                      onPress={() => router.push('/(tabs)/add')}
-                    >
-                      <Text style={styles.fabText}>+</Text>
-                    </TouchableOpacity>
-                  </Tooltip>
-                ) : (
+                )
+              )}
+              {showOnboarding && onboardingStep === 2 ? (
+                <Tooltip
+                  isVisible={true}
+                  content={
+                    <Text>
+                      Tap here to add your first contact. You can import from
+                      your device or enter manually.
+                    </Text>
+                  }
+                  placement="top"
+                  onClose={handleNextOnboarding}
+                  showChildInTooltip={false}
+                  useInteractionManager={true}
+                  tooltipStyle={{ marginLeft: -60 }}
+                >
                   <TouchableOpacity
                     style={[styles.fab, { marginTop: 24 }]}
                     onPress={() => router.push('/(tabs)/add')}
                   >
                     <Text style={styles.fabText}>+</Text>
                   </TouchableOpacity>
-                )}
-              </View>
-            )
-          }
+                </Tooltip>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.fab, { marginTop: 24 }]}
+                  onPress={() => router.push('/(tabs)/add')}
+                >
+                  <Text style={styles.fabText}>+</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           ListFooterComponent={
             contacts && contacts.length > 0 ? (
               <TouchableOpacity
@@ -799,12 +948,12 @@ function ContactsScreen(props: any) {
         visible={isCustomPromptModalVisible}
         onClose={handleCloseModal}
         onSubmit={handleCustomPromptSubmit}
-        prompt={customPrompt}
-        onChangePrompt={setCustomPrompt}
+        prompt={tempPrompt}
+        onChangePrompt={setTempPrompt}
       />
       <PaywallModal
-        visible={showPaywall}
-        errorType={paywallType}
+        visible={error === MESSAGE_LIMIT_ERROR}
+        errorType={'messages'}
         onClose={handleClosePaywall}
         onUpgrade={handleUpgrade}
       />
@@ -932,7 +1081,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   errorText: {
-    color: '#FF3B30',
+    color: '#64403E',
     marginBottom: 16,
     fontSize: 16,
     textAlign: 'center',
@@ -1016,7 +1165,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   birthdayText: {
-    color: '#FF9500',
+    color: '#fff',
     fontSize: 13,
     marginLeft: 4,
   },
@@ -1044,7 +1193,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#9d9e9e',
+    backgroundColor: '#cbc0ab',
   },
   fabText: {
     color: 'white',

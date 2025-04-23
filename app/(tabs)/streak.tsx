@@ -10,9 +10,11 @@ import { useContactStore } from '@/lib/store'; // Adjust path if necessary
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeProvider'; // Import useTheme
 import { supabase } from '@/lib/supabase'; // Import supabase client
+import { useHeaderHeight } from '@react-navigation/elements';
 
 const StreakScreen = () => {
   const { colors } = useTheme(); // Get theme colors
+  const headerHeight = useHeaderHeight();
 
   // State for Global Streak
   const [globalStreak, setGlobalStreak] = useState<number>(0);
@@ -22,13 +24,12 @@ const StreakScreen = () => {
   );
 
   // State for Contacts (for loading and error only)
-  const {
-    loading: contactsLoading,
-    error: contactsError,
-  } = useContactStore((state) => ({
-    loading: state.loading,
-    error: state.error,
-  }));
+  const { loading: contactsLoading, error: contactsError } = useContactStore(
+    (state) => ({
+      loading: state.loading,
+      error: state.error,
+    })
+  );
 
   // Fetch global streak from profile on mount
   useEffect(() => {
@@ -78,7 +79,12 @@ const StreakScreen = () => {
   // Combined loading state
   if (contactsLoading || globalStreakLoading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.centered,
+          { backgroundColor: colors.background, paddingTop: headerHeight },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
@@ -88,7 +94,7 @@ const StreakScreen = () => {
     <ScrollView
       contentContainerStyle={[
         styles.container,
-        { backgroundColor: colors.background },
+        { backgroundColor: colors.background, paddingTop: headerHeight },
       ]}
     >
       {/* Global Consistency Streak Section */}

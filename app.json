@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Everloop",
+    "name": "KeepTouch",
     "slug": "bolt-expo-nativewind",
     "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "touchbasebolt",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -69,7 +69,9 @@
       },
       "eas": {
         "projectId": "f378a217-f470-4517-90db-7bb1b65a13a1"
-      }
+      },
+      "stripeMonthlyPriceId": "price_1RH9XeBUkwoMRVFAcIZgnlei",
+      "stripeYearlyPriceId": "price_1RH9XxBUkwoMRVFAa6lQd7ih"
     },
     "newArchEnabled": true
   }

@@ -156,7 +156,7 @@ function SignInInner() {
                     { color: colors.accent, opacity: fadeAnim },
                   ]}
                 >
-                  Everloop
+                  KeepTouch
                 </Animated.Text>
               </>
             )}
