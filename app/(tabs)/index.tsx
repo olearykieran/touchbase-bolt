@@ -44,6 +44,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import * as SMS from 'expo-sms';
+import PaywallModal from '../../components/PaywallModal';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -60,8 +61,19 @@ interface ContactItem {
 
 type LoadingState = {
   contactId: string;
-  messageType: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday' | 'joke' | 'fact';
+  messageType:
+    | 'default'
+    | 'love'
+    | 'gratitude'
+    | 'custom'
+    | 'birthday'
+    | 'joke'
+    | 'fact';
 };
+
+// Error message constant for message limit (match backend details)
+const MESSAGE_LIMIT_ERROR =
+  'Free tier limited to 3 AI messages per week. Subscribe to unlock more.';
 
 // Move CustomPromptModal outside the main component
 const CustomPromptModal = ({
@@ -141,6 +153,8 @@ function ContactsScreen(props: any) {
     fetchContacts,
     updateLastContact,
     deleteContact,
+    setError,
+    clearError,
   } = useContactStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
@@ -173,16 +187,6 @@ function ContactsScreen(props: any) {
     })();
   }, [contacts, loading]);
 
-  const handleNextOnboarding = async () => {
-    if (onboardingStep === 1) {
-      setOnboardingStep(2);
-    } else {
-      setShowOnboarding(false);
-      setOnboardingStep(0);
-      await AsyncStorage.setItem(onboardingShownKey, 'true');
-    }
-  };
-
   useEffect(() => {
     fetchContacts();
   }, []);
@@ -207,6 +211,9 @@ function ContactsScreen(props: any) {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log(
+                `[ContactsScreen] handleDelete: Attempting to call store.deleteContact for ID: ${contact.id}`
+              );
               await deleteContact(contact.id);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete contact');
@@ -257,6 +264,11 @@ function ContactsScreen(props: any) {
         }
       );
 
+      // HTTP 402 -> message limit
+      if (response.status === 402) {
+        setError(MESSAGE_LIMIT_ERROR);
+        return;
+      }
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to generate message');
@@ -294,13 +306,9 @@ function ContactsScreen(props: any) {
         console.warn('No phone number for contact, using Share.');
         await Share.share({ message });
       }
-    } catch (error: any) {
-      console.error('Error generating message:', error);
-      Alert.alert(
-        'Error',
-        'Failed to generate message. Please try again later. ' + error.message
-      );
-      // Consider reverting optimistic updates if necessary based on error type
+    } catch (err: any) {
+      setError(err.message);
+      Alert.alert('Error', err.message);
     } finally {
       setLoadingState(null);
       setCustomPrompt(''); // Reset custom prompt if it was used
@@ -384,9 +392,7 @@ function ContactsScreen(props: any) {
         return;
       }
       try {
-        const smsUrl = `sms:${phone}${
-          Platform.OS === 'ios' ? '&' : '?'
-        }body=`; // Empty body
+        const smsUrl = `sms:${phone}${Platform.OS === 'ios' ? '&' : '?'}body=`; // Empty body
         const canOpen = await Linking.canOpenURL(smsUrl);
 
         if (canOpen) {
@@ -645,9 +651,11 @@ function ContactsScreen(props: any) {
     );
   };
 
-  if (error) {
+  if (error && error !== MESSAGE_LIMIT_ERROR) {
     return (
-      <View style={styles.centerContainer}>
+      <View
+        style={[styles.centerContainer, { backgroundColor: colors.background }]}
+      >
         <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: colors.accent }]}
@@ -658,6 +666,29 @@ function ContactsScreen(props: any) {
       </View>
     );
   }
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    const monthlyLink = 'https://buy.stripe.com/6oEcNFb5l2D34rm5kk';
+    const yearlyLink = 'https://buy.stripe.com/8wM7tl1uLelL1fa7st';
+    const url = plan === 'monthly' ? monthlyLink : yearlyLink;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(`Don't know how to open this URL: ${url}`);
+      }
+    } catch (err) {
+      console.error('Failed to open payment link:', err);
+      Alert.alert('Error', 'Could not open payment page.');
+    }
+    clearError();
+  };
+
+  // derive paywall visibility and type from store error
+  const showPaywall = error === MESSAGE_LIMIT_ERROR;
+  const paywallType: 'contacts' | 'messages' = 'messages';
+  const handleClosePaywall = () => clearError();
 
   return (
     <View style={{ flex: 1 }}>
@@ -689,7 +720,10 @@ function ContactsScreen(props: any) {
                   <Tooltip
                     isVisible={true}
                     content={
-                      <Text>This is where your contacts will appear. Let's add your first contact!</Text>
+                      <Text>
+                        This is where your contacts will appear. Let's add your
+                        first contact!
+                      </Text>
                     }
                     placement="bottom"
                     onClose={handleNextOnboarding}
@@ -707,10 +741,7 @@ function ContactsScreen(props: any) {
                   </Tooltip>
                 ) : (
                   <Text
-                    style={[
-                      styles.emptyText,
-                      { color: colors.secondaryText },
-                    ]}
+                    style={[styles.emptyText, { color: colors.secondaryText }]}
                   >
                     No contacts yet. Add some!
                   </Text>
@@ -752,7 +783,10 @@ function ContactsScreen(props: any) {
           ListFooterComponent={
             contacts && contacts.length > 0 ? (
               <TouchableOpacity
-                style={[styles.fab, { alignSelf: 'center', marginVertical: 32 }]}
+                style={[
+                  styles.fab,
+                  { alignSelf: 'center', marginVertical: 32 },
+                ]}
                 onPress={() => router.push('/(tabs)/add')}
               >
                 <Text style={styles.fabText}>+</Text>
@@ -767,6 +801,12 @@ function ContactsScreen(props: any) {
         onSubmit={handleCustomPromptSubmit}
         prompt={customPrompt}
         onChangePrompt={setCustomPrompt}
+      />
+      <PaywallModal
+        visible={showPaywall}
+        errorType={paywallType}
+        onClose={handleClosePaywall}
+        onUpgrade={handleUpgrade}
       />
     </View>
   );
@@ -1004,7 +1044,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#3dc0dc',
+    backgroundColor: '#9d9e9e',
   },
   fabText: {
     color: 'white',

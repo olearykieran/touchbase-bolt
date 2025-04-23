@@ -146,6 +146,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
+    // Create Supabase Admin client for elevated privileges (bypasses RLS)
+    const supabaseAdminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false, // Avoid storing session for admin client
+        },
+      }
+    );
+
     // Get the Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -162,6 +173,60 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       throw new Error('Authentication failed');
+    }
+
+    // Fetch user profile for quota enforcement (use admin client)
+    const { data: profile, error: profileError } = await supabaseAdminClient
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    if (profileError || !profile) {
+      throw new Error('User profile not found');
+    }
+
+    // Quota enforcement logic
+    const isFreeTier = profile.subscription_status === 'free';
+    let { weekly_message_count, last_message_reset } = profile;
+    const now = new Date();
+    let needsReset = false;
+    if (!last_message_reset) {
+      needsReset = true;
+    } else {
+      const lastReset = new Date(last_message_reset);
+      // If more than 7 days since last reset, reset count
+      if (now.getTime() - lastReset.getTime() >= 7 * 24 * 60 * 60 * 1000) {
+        needsReset = true;
+      }
+    }
+    if (isFreeTier) {
+      if (needsReset) {
+        // Reset weekly_message_count and last_message_reset (use admin client)
+        const { error: resetError } = await supabaseAdminClient
+          .from('profiles')
+          .update({
+            weekly_message_count: 0,
+            last_message_reset: now.toISOString(),
+          })
+          .eq('id', user.id);
+        if (resetError) {
+          throw new Error('Failed to reset weekly message count');
+        }
+        weekly_message_count = 0;
+      }
+      if (weekly_message_count >= 3) {
+        // Quota exceeded
+        return new Response(
+          JSON.stringify({
+            error: 'PaymentRequiredError',
+            details: 'Free tier limited to 3 AI messages per week. Subscribe to unlock more.',
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     // Get the request body
@@ -241,6 +306,17 @@ serve(async (req) => {
       messageType,
       messagePreview: message.substring(0, 50) + '...',
     });
+
+    // On success, increment weekly_message_count for free tier (use admin client)
+    if (isFreeTier) {
+      const { error: incError } = await supabaseAdminClient
+        .from('profiles')
+        .update({ weekly_message_count: weekly_message_count + 1 })
+        .eq('id', user.id);
+      if (incError) {
+        console.error('Failed to increment weekly_message_count:', incError);
+      }
+    }
 
     return new Response(JSON.stringify({ message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

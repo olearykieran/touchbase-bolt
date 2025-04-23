@@ -14,7 +14,7 @@ const lightColors = {
   card: '#fff',
   text: '#000',
   secondaryText: '#666',
-  accent: '#3dc0dc',
+  accent: '#9d9e9e',
   error: '#FF3B30',
   border: '#E5E5EA',
 };
@@ -24,7 +24,7 @@ const darkColors = {
   card: '#232526',
   text: '#fff',
   secondaryText: '#aaa',
-  accent: '#3dc0dc',
+  accent: '#9d9e9e',
   error: '#FF3B30',
   border: '#333',
 };

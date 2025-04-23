@@ -74,8 +74,12 @@ function SignInInner() {
           <View
             style={[styles.formContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Sign in to continue</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Welcome Back
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+              Sign in to continue
+            </Text>
             {error && <Text style={styles.errorText}>{error}</Text>}
             <TextInput
               style={[
@@ -125,7 +129,11 @@ function SignInInner() {
               onPress={() => router.replace('/sign-up')}
               disabled={loading}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>Don't have an account? Create one</Text>
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.accent }]}
+              >
+                Don't have an account? Create one
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
@@ -148,7 +156,7 @@ function SignInInner() {
                     { color: colors.accent, opacity: fadeAnim },
                   ]}
                 >
-                  TouchBase
+                  Everloop
                 </Animated.Text>
               </>
             )}
@@ -209,7 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#3dc0dc',
+    backgroundColor: '#9d9e9e',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -229,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#3dc0dc',
+    color: '#9d9e9e',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -253,7 +261,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#3dc0dc',
+    color: '#9d9e9e',
     marginTop: 0,
     marginBottom: 8,
     textAlign: 'center',

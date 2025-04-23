@@ -302,9 +302,9 @@ export default function SettingsScreen() {
           onPress={async () => {
             try {
               await Share.share({
-                title: 'TouchBase',
+                title: 'Everloop',
                 message:
-                  'Stay in touch with the people who matter most! Download TouchBase: https://apps.apple.com/app/id6501184872',
+                  'Stay in touch with the people who matter most! Download Everloop: https://apps.apple.com/app/id6501184872',
                 url: 'https://apps.apple.com/app/id6501184872',
               });
             } catch (error) {

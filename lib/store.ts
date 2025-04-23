@@ -31,6 +31,8 @@ interface ContactStore {
     contactId: string,
     interval: string
   ) => Promise<void>;
+  setError: (error: string | null) => void; // Add setError interface
+  clearError: () => void;
 }
 
 const getReminderInterval = (frequency: Contact['frequency']): string => {
@@ -52,6 +54,12 @@ export const useContactStore = create<ContactStore>((set, get) => ({
   contacts: [],
   loading: false,
   error: null,
+
+  clearError: () => set({ error: null }),
+
+  setError: (error) => {
+    set({ error });
+  },
 
   fetchContacts: async () => {
     set({ loading: true, error: null });
@@ -94,14 +102,30 @@ export const useContactStore = create<ContactStore>((set, get) => ({
       if (userError) throw userError;
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('contacts')
         .delete()
         .eq('id', contactId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
 
+      console.log(`[deleteContact] Attempting to decrement count for user: ${user.id}`);
+      // *** ADDED STEP: Decrement the count using RPC ***
+      const { error: decrementError } = await supabase
+        .rpc('decrement_contact_count', { p_user_id: user.id });
+
+      if (decrementError) {
+        // Log the error but proceed with UI update for better UX
+        // The count might be temporarily wrong, but the contact is gone
+        console.error(`[deleteContact] Failed to decrement contact count for user ${user.id}:`, decrementError);
+        // Optionally: Set a different kind of error state?
+        // set({ error: 'Contact deleted, but count update failed.' });
+      } else {
+        console.log(`[deleteContact] Successfully decremented count for user: ${user.id}`);
+      }
+
+      // 2. Update local state
       set((state) => ({
         contacts: state.contacts.filter((c) => c.id !== contactId),
         loading: false,
@@ -112,6 +136,7 @@ export const useContactStore = create<ContactStore>((set, get) => ({
   },
 
   addContact: async (contact) => {
+    // Set initial state immediately
     set({ loading: true, error: null });
     try {
       const {
@@ -147,22 +172,44 @@ export const useContactStore = create<ContactStore>((set, get) => ({
         }
       }
 
-      const { firstContactDate, ...contactDataToInsert } = contact;
+      const { firstContactDate, ...contactDataToSend } = contact;
+      const payload = {
+        ...contactDataToSend,
+        last_contact: lastContact.toISOString(),
+        next_contact: nextContactDate.toISOString(),
+        reminder_interval: reminderInterval,
+      };
 
-      const { data, error } = await supabase
-        .from('contacts')
-        .insert({
-          ...contactDataToInsert,
-          user_id: user.id,
-          last_contact: lastContact.toISOString(),
-          next_contact: nextContactDate.toISOString(),
-          reminder_interval: reminderInterval,
-        })
-        .select()
-        .single();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) throw sessionError || new Error('Not authenticated');
 
-      if (error) throw error;
+      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/add-contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
+      if (response.status === 402) {
+        const errorData = await response.json();
+        // Set the error, loading will be handled by finally
+        set({ error: errorData.details || 'Payment required' });
+        // Don't set loading: false here, let finally do it
+        return; // Exit early for payment required
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to add contact');
+      }
+
+      // Success case:
+      const { contact: data } = await response.json();
       set((state) => ({
         contacts: [
           ...state.contacts,
@@ -173,10 +220,17 @@ export const useContactStore = create<ContactStore>((set, get) => ({
             reminderInterval: data.reminder_interval,
           },
         ],
-        loading: false,
+        error: null, // Ensure error is null on success
+        // loading: false will be handled by finally
       }));
+
     } catch (error) {
-      set({ error: (error as Error).message, loading: false });
+      // Set error state, loading will be handled by finally
+      set({ error: (error as Error).message });
+      // Don't set loading: false here
+    } finally {
+      // This block ALWAYS runs
+      set({ loading: false });
     }
   },
 

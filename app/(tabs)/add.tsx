@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  Linking,
+  Alert, // Add Alert import
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { useState } from 'react';
@@ -20,18 +22,22 @@ import React from 'react';
 import { useTheme } from '../../components/ThemeProvider';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PaywallModal from '../../components/PaywallModal';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
   const loading = useContactStore((state) => state.loading);
   const error = useContactStore((state) => state.error);
+  const clearError = useContactStore((state) => state.clearError);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
-  const [showFirstContactDatePicker, setShowFirstContactDatePicker] = useState(false);
+  const [showFirstContactDatePicker, setShowFirstContactDatePicker] =
+    useState(false);
   const [contactPermissionStatus, setContactPermissionStatus] = useState<
     'undetermined' | 'granted' | 'denied'
   >('undetermined');
-  const [showContactPermissionPrompt, setShowContactPermissionPrompt] = useState(false);
+  const [showContactPermissionPrompt, setShowContactPermissionPrompt] =
+    useState(false);
   const { colors, colorScheme } = useTheme();
 
   const [formData, setFormData] = useState({
@@ -127,20 +133,98 @@ export default function AddContactScreen() {
     }
   };
 
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallType, setPaywallType] = useState<'contacts' | 'messages'>(
+    'contacts'
+  );
+
+  // Error message constant for message limit
+  const MESSAGE_LIMIT_ERROR =
+    'Free tier limited to 3 AI messages per week. Subscribe to unlock more.';
+
+  React.useEffect(() => {
+    console.log('[AddContactScreen] useEffect triggered with error:', error);
+    if (
+      error === 'Free tier limited to 3 contacts. Subscribe to unlock more.'
+    ) {
+      setShowPaywall(true);
+      setPaywallType('contacts');
+    } else if (error === MESSAGE_LIMIT_ERROR) {
+      setShowPaywall(true);
+      setPaywallType('messages');
+    } else {
+      setShowPaywall(false);
+    }
+  }, [error]);
+
+  const handleClosePaywall = () => {
+    console.log(
+      '[AddContactScreen] handleClosePaywall called, clearing error.'
+    );
+    clearError(); // Clear the error in the store
+    // Let the useEffect handle hiding the modal when the error becomes null
+    // setShowPaywall(false);
+  };
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    const monthlyLink = 'https://buy.stripe.com/6oEcNFb5l2D34rm5kk';
+    const yearlyLink = 'https://buy.stripe.com/8wM7tl1uLelL1fa7st';
+    const url = plan === 'monthly' ? monthlyLink : yearlyLink;
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(`Don't know how to open this URL: ${url}`);
+      }
+    } catch (error) {
+      console.error('Failed to open payment link:', error);
+      Alert.alert('Error', 'Could not open payment page.');
+    }
+
+    // Keep modal closing logic
+    setShowPaywall(false);
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={styles.form}>
-        {error && (
-          <Text style={[styles.errorText, { color: colors.error }]}> {error} </Text>
+        {error && error !== MESSAGE_LIMIT_ERROR && (
+          <Text
+            style={[
+              styles.errorText,
+              {
+                color: colors.error,
+                backgroundColor: colorScheme === 'dark' ? '#232526' : '#fff',
+                padding: 12,
+                borderRadius: 8,
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {' '}
+            {error}{' '}
+          </Text>
         )}
-
-        {Platform.OS !== 'web' && (
-          showAddOnboarding && addOnboardingStep === 1 ? (
+        <PaywallModal
+          visible={showPaywall}
+          onClose={handleClosePaywall}
+          onUpgrade={handleUpgrade}
+          errorType={paywallType}
+        />
+        {Platform.OS !== 'web' &&
+          (showAddOnboarding && addOnboardingStep === 1 ? (
             <Tooltip
               isVisible={true}
-              content={<Text>You can add contacts from your phone by clicking the "Add from Contacts" button.</Text>}
+              content={
+                <Text>
+                  You can add contacts from your phone by clicking the "Add from
+                  Contacts" button.
+                </Text>
+              }
               placement="bottom"
               onClose={handleNextAddOnboarding}
               showChildInTooltip={false}
@@ -154,7 +238,11 @@ export default function AddContactScreen() {
                 onPress={() => setShowContactPicker(true)}
               >
                 <Users size={24} color={colors.accent} />
-                <Text style={[styles.contactPickerText, { color: colors.accent }]}>Add from Contacts</Text>
+                <Text
+                  style={[styles.contactPickerText, { color: colors.accent }]}
+                >
+                  Add from Contacts
+                </Text>
               </TouchableOpacity>
             </Tooltip>
           ) : (
@@ -166,10 +254,13 @@ export default function AddContactScreen() {
               onPress={() => setShowContactPicker(true)}
             >
               <Users size={24} color={colors.accent} />
-              <Text style={[styles.contactPickerText, { color: colors.accent }]}>Add from Contacts</Text>
+              <Text
+                style={[styles.contactPickerText, { color: colors.accent }]}
+              >
+                Add from Contacts
+              </Text>
             </TouchableOpacity>
-          )
-        )}
+          ))}
 
         <Text style={[styles.label, { color: colors.text }]}>Name</Text>
         <TextInput
@@ -213,7 +304,12 @@ export default function AddContactScreen() {
         {showAddOnboarding && addOnboardingStep === 2 ? (
           <Tooltip
             isVisible={true}
-            content={<Text>You can choose how often you want to be reminded to reach out to this person by selecting contact frequency.</Text>}
+            content={
+              <Text>
+                You can choose how often you want to be reminded to reach out to
+                this person by selecting contact frequency.
+              </Text>
+            }
             placement="bottom"
             onClose={handleNextAddOnboarding}
             showChildInTooltip={false}
@@ -225,7 +321,9 @@ export default function AddContactScreen() {
                   key={freq}
                   style={[
                     styles.frequencyButton,
-                    formData.frequency === freq && { backgroundColor: colors.accent },
+                    formData.frequency === freq && {
+                      backgroundColor: colors.accent,
+                    },
                   ]}
                   onPress={() => setFormData({ ...formData, frequency: freq })}
                 >
@@ -248,7 +346,9 @@ export default function AddContactScreen() {
                 key={freq}
                 style={[
                   styles.frequencyButton,
-                  formData.frequency === freq && { backgroundColor: colors.accent },
+                  formData.frequency === freq && {
+                    backgroundColor: colors.accent,
+                  },
                 ]}
                 onPress={() => setFormData({ ...formData, frequency: freq })}
               >
@@ -289,7 +389,12 @@ export default function AddContactScreen() {
         {showAddOnboarding && addOnboardingStep === 3 ? (
           <Tooltip
             isVisible={true}
-            content={<Text>You can specify when you want to first be reminded to reach out to this contact here.</Text>}
+            content={
+              <Text>
+                You can specify when you want to first be reminded to reach out
+                to this contact here.
+              </Text>
+            }
             placement="bottom"
             onClose={handleNextAddOnboarding}
             showChildInTooltip={false}
@@ -303,9 +408,9 @@ export default function AddContactScreen() {
               onPress={() => setShowFirstContactDatePicker(true)}
             >
               <Text style={{ color: colors.text }}>
-                {formData.firstContactDate ?
-                  formData.firstContactDate.toLocaleString() :
-                  'Select Date & Time'}
+                {formData.firstContactDate
+                  ? formData.firstContactDate.toLocaleString()
+                  : 'Select Date & Time'}
               </Text>
             </TouchableOpacity>
           </Tooltip>
@@ -318,9 +423,9 @@ export default function AddContactScreen() {
             onPress={() => setShowFirstContactDatePicker(true)}
           >
             <Text style={{ color: colors.text }}>
-              {formData.firstContactDate ?
-                formData.firstContactDate.toLocaleString() :
-                'Select Date & Time'}
+              {formData.firstContactDate
+                ? formData.firstContactDate.toLocaleString()
+                : 'Select Date & Time'}
             </Text>
           </TouchableOpacity>
         )}
@@ -332,7 +437,7 @@ export default function AddContactScreen() {
             loading && styles.submitButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={loading} // Add this prop
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -512,7 +617,7 @@ export default function AddContactScreen() {
                 marginBottom: 20,
               }}
             >
-              To easily add people from your device, please allow TouchBase to
+              To easily add people from your device, please allow Everloop to
               access your contacts.
             </Text>
             <TouchableOpacity
@@ -535,7 +640,9 @@ export default function AddContactScreen() {
                 Enable Contacts Access
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowContactPermissionPrompt(false)}>
+            <TouchableOpacity
+              onPress={() => setShowContactPermissionPrompt(false)}
+            >
               <Text
                 style={{
                   color: colors.secondaryText,
@@ -556,7 +663,6 @@ export default function AddContactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
   },
   form: {
     padding: 16,
@@ -602,7 +708,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5EA',
   },
   frequencyButtonActive: {
-    backgroundColor: '#3dc0dc',
+    backgroundColor: '#9d9e9e',
   },
   frequencyButtonText: {
     color: '#000',
@@ -629,7 +735,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   errorText: {
-    color: '#FF3B30',
     marginBottom: 16,
     fontSize: 14,
   },

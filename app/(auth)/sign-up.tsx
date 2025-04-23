@@ -77,8 +77,12 @@ function SignUpInner() {
           <View
             style={[styles.formContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Join TouchBase to stay connected!</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Create Account
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+              Join Everloop to stay connected!
+            </Text>
             {error && <Text style={styles.errorText}>{error}</Text>}
             {success && (
               <Text style={styles.successText}>
@@ -133,7 +137,11 @@ function SignUpInner() {
               onPress={() => router.replace('/sign-in')}
               disabled={loading}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>Already have an account? Sign in</Text>
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.accent }]}
+              >
+                Already have an account? Sign in
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
@@ -156,7 +164,7 @@ function SignUpInner() {
                     { color: colors.accent, opacity: fadeAnim },
                   ]}
                 >
-                  TouchBase
+                  Everloop
                 </Animated.Text>
               </>
             )}
@@ -217,7 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#3dc0dc',
+    backgroundColor: '#9d9e9e',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -237,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#3dc0dc',
+    color: '#9d9e9e',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -267,7 +275,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#3dc0dc',
+    color: '#9d9e9e',
     marginTop: 0,
     marginBottom: 8,
     textAlign: 'center',

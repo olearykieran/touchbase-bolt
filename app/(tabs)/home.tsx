@@ -10,7 +10,12 @@ import {
 import { useTheme } from '@/components/ThemeProvider';
 import { useContactStore, Contact } from '@/lib/store';
 import { router } from 'expo-router';
-import { Users, UserPlus, Flame, Settings as SettingsIcon } from 'lucide-react-native';
+import {
+  Users,
+  UserPlus,
+  Flame,
+  Settings as SettingsIcon,
+} from 'lucide-react-native';
 import { formatDistanceToNow, isPast, isValid } from 'date-fns';
 
 export default function HomeScreen() {
@@ -20,8 +25,9 @@ export default function HomeScreen() {
   // Sort contacts to find the next upcoming one
   const sortedContacts = [...contacts]
     // Filter for valid Date objects
-    .filter(c => c.nextContact instanceof Date && isValid(c.nextContact))
-    .sort((a, b) => { // a.nextContact and b.nextContact are Date objects here
+    .filter((c) => c.nextContact instanceof Date && isValid(c.nextContact))
+    .sort((a, b) => {
+      // a.nextContact and b.nextContact are Date objects here
       const aDate = a.nextContact;
       const bDate = b.nextContact;
       // Prioritize non-past dates
@@ -37,19 +43,35 @@ export default function HomeScreen() {
 
   const renderNextContactInfo = () => {
     // Check if nextContact and its nextContact property (Date) exist
-    if (!nextContact || !(nextContact.nextContact instanceof Date) || !isValid(nextContact.nextContact)) {
-      return <Text style={[styles.infoText, { color: colors.secondaryText }]}>No upcoming reminders.</Text>;
+    if (
+      !nextContact ||
+      !(nextContact.nextContact instanceof Date) ||
+      !isValid(nextContact.nextContact)
+    ) {
+      return (
+        <Text style={[styles.infoText, { color: colors.secondaryText }]}>
+          No upcoming reminders.
+        </Text>
+      );
     }
 
     const nextContactDate = nextContact.nextContact; // It's already a Date object
 
-    const timeDistance = formatDistanceToNow(nextContactDate, { addSuffix: true });
-    const dateStyle = isPast(nextContactDate) ? { color: colors.error } : { color: colors.accent };
+    const timeDistance = formatDistanceToNow(nextContactDate, {
+      addSuffix: true,
+    });
+    const dateStyle = isPast(nextContactDate)
+      ? { color: colors.error }
+      : { color: colors.accent };
 
     return (
       <View style={styles.nextContactContainer}>
-        <Text style={[styles.nextContactLabel, { color: colors.text }]}>Next Touch Base:</Text>
-        <Text style={[styles.nextContactName, { color: colors.text }]}>{nextContact.name}</Text>
+        <Text style={[styles.nextContactLabel, { color: colors.text }]}>
+          Next Touch Base:
+        </Text>
+        <Text style={[styles.nextContactName, { color: colors.text }]}>
+          {nextContact.name}
+        </Text>
         <Text style={[styles.nextContactDate, dateStyle]}>{timeDistance}</Text>
       </View>
     );
@@ -63,10 +85,15 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.header}>
-        <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
-        <Text style={[styles.title, { color: colors.text }]}>TouchBase</Text>
+        <Image
+          source={require('@/assets/images/icon.png')}
+          style={styles.logo}
+        />
+        <Text style={[styles.title, { color: colors.text }]}>Everloop</Text>
       </View>
 
       <View style={styles.infoSection}>
@@ -84,7 +111,9 @@ export default function HomeScreen() {
             onPress={() => router.push(button.path as any)}
           >
             <button.icon size={32} color={colors.accent} />
-            <Text style={[styles.navButtonText, { color: colors.text }]}>{button.name}</Text>
+            <Text style={[styles.navButtonText, { color: colors.text }]}>
+              {button.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
