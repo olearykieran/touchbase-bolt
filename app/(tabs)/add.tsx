@@ -73,7 +73,6 @@ export default function AddContactScreen() {
     console.log('Submitting contact data:', submitData);
 
     await addContact(submitData);
-    ``;
     if (!error) {
       router.push('/(tabs)/' as any);
     }
@@ -260,7 +259,11 @@ export default function AddContactScreen() {
               <TouchableOpacity
                 style={[
                   styles.contactPickerButton,
-                  { backgroundColor: colors.card },
+                  { 
+                    backgroundColor: colors.white,
+                    borderWidth: 1,
+                    borderColor: colors.border 
+                  },
                 ]}
                 onPress={() => setShowContactPicker(true)}
               >
@@ -276,7 +279,11 @@ export default function AddContactScreen() {
             <TouchableOpacity
               style={[
                 styles.contactPickerButton,
-                { backgroundColor: colors.card },
+                { 
+                  backgroundColor: colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border 
+                },
               ]}
               onPress={() => setShowContactPicker(true)}
             >
@@ -295,11 +302,17 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { backgroundColor: colors.card, color: colors.text },
+            { 
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.border,
+              color: colors.text 
+            },
           ]}
+          placeholder="Name"
+          placeholderTextColor="#A3A3A3"
           value={formData.name}
           onChangeText={(text) => setFormData({ ...formData, name: text })}
-          placeholder="Enter name"
         />
 
         <ThemedText style={[styles.label, { color: colors.text }]}>
@@ -308,13 +321,19 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { backgroundColor: colors.card, color: colors.text },
+            { 
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.border,
+              color: colors.text 
+            },
           ]}
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          placeholder="Enter email"
+          placeholder="Email"
+          placeholderTextColor="#A3A3A3"
           keyboardType="email-address"
           autoCapitalize="none"
+          value={formData.email}
+          onChangeText={(text) => setFormData({ ...formData, email: text })}
         />
 
         <ThemedText style={[styles.label, { color: colors.text }]}>
@@ -323,12 +342,18 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { backgroundColor: colors.card, color: colors.text },
+            { 
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.border,
+              color: colors.text 
+            },
           ]}
+          placeholder="Phone"
+          placeholderTextColor="#A3A3A3"
+          keyboardType="phone-pad"
           value={formData.phone}
           onChangeText={(text) => setFormData({ ...formData, phone: text })}
-          placeholder="Enter phone number"
-          keyboardType="phone-pad"
         />
 
         <ThemedText style={[styles.label, { color: colors.text }]}>
@@ -402,7 +427,14 @@ export default function AddContactScreen() {
           Birthday (optional)
         </ThemedText>
         <TouchableOpacity
-          style={[styles.input, { backgroundColor: colors.card }]}
+          style={[
+            styles.datePickerButton,
+            { 
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.border 
+            },
+          ]}
           onPress={() => setShowBirthdayPicker(true)}
         >
           <ThemedText
@@ -435,8 +467,12 @@ export default function AddContactScreen() {
           >
             <TouchableOpacity
               style={[
-                styles.input,
-                { backgroundColor: colors.card, marginBottom: 16 },
+                styles.datePickerButton,
+                { 
+                  backgroundColor: colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border 
+                },
               ]}
               onPress={() => setShowFirstContactDatePicker(true)}
             >
@@ -450,8 +486,12 @@ export default function AddContactScreen() {
         ) : (
           <TouchableOpacity
             style={[
-              styles.input,
-              { backgroundColor: colors.card, marginBottom: 16 },
+              styles.datePickerButton,
+              { 
+                backgroundColor: colors.white,
+                borderWidth: 1,
+                borderColor: colors.border 
+              },
             ]}
             onPress={() => setShowFirstContactDatePicker(true)}
           >
@@ -477,7 +517,9 @@ export default function AddContactScreen() {
           ) : (
             <>
               <UserPlus size={24} color="#fff" />
-              <ThemedText style={[styles.submitButtonText, { color: '#fff' }]}>
+              <ThemedText
+                style={[styles.submitButtonText, { color: '#fff' }]}
+              >
                 Add Contact
               </ThemedText>
             </>
@@ -716,6 +758,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   contactPickerButton: {
     flexDirection: 'row',
@@ -726,6 +770,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 24,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   contactPickerText: {
     fontSize: 16,
@@ -774,5 +820,17 @@ const styles = StyleSheet.create({
   errorText: {
     marginBottom: 16,
     fontSize: 14,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
 });

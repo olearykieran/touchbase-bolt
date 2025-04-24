@@ -894,21 +894,34 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={[{ color: 'black' }]}>
-                      This is where your contacts will appear. Let's add your
-                      first contact!
+                    <ThemedText style={{ fontSize: 14, textAlign: 'center' }}>
+                      Add your first contact to get started!
                     </ThemedText>
                   }
-                  placement="bottom"
-                  onClose={handleNextOnboarding}
+                  placement="top"
+                  onClose={() => setShowOnboarding(false)}
+                  backgroundColor="rgba(0,0,0,0.8)"
+                  contentStyle={{ padding: 10 }}
                   showChildInTooltip={false}
                   useInteractionManager={true}
                 >
-                  <ThemedText
-                    style={[styles.emptyText, { color: colors.secondaryText }]}
+                  <TouchableOpacity
+                    style={[
+                      styles.fab,
+                      {
+                        marginTop: 24,
+                        backgroundColor: colors.accent,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 4,
+                        elevation: 4,
+                      },
+                    ]}
+                    onPress={() => router.push('/(tabs)/add')}
                   >
-                    No contacts yet. Add some!
-                  </ThemedText>
+                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
+                  </TouchableOpacity>
                 </Tooltip>
               ) : (
                 <ThemedText
@@ -921,29 +934,53 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={[{ color: 'black' }]}>
+                    <ThemedText style={{ fontSize: 14, textAlign: 'center' }}>
                       Tap here to add your first contact. You can import from
                       your device or enter manually.
                     </ThemedText>
                   }
                   placement="top"
                   onClose={handleNextOnboarding}
+                  backgroundColor="rgba(0,0,0,0.8)"
+                  contentStyle={{ padding: 10 }}
                   showChildInTooltip={false}
                   useInteractionManager={true}
                 >
                   <TouchableOpacity
-                    style={[styles.fab, { marginTop: 24 }]}
+                    style={[
+                      styles.fab,
+                      {
+                        marginTop: 24,
+                        backgroundColor: colors.accent,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 4,
+                        elevation: 4,
+                      },
+                    ]}
                     onPress={() => router.push('/(tabs)/add')}
                   >
-                    <ThemedText style={styles.fabText}>+</ThemedText>
+                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
                   </TouchableOpacity>
                 </Tooltip>
               ) : (
                 <TouchableOpacity
-                  style={[styles.fab, { marginTop: 24 }]}
+                  style={[
+                    styles.fab,
+                    {
+                      marginTop: 24,
+                      backgroundColor: colors.accent,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 4,
+                      elevation: 4,
+                    },
+                  ]}
                   onPress={() => router.push('/(tabs)/add')}
                 >
-                  <ThemedText style={styles.fabText}>+</ThemedText>
+                  <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -953,11 +990,20 @@ function ContactsScreen(props: any) {
               <TouchableOpacity
                 style={[
                   styles.fab,
-                  { alignSelf: 'center', marginVertical: 32 },
+                  {
+                    alignSelf: 'center',
+                    marginVertical: 32,
+                    backgroundColor: colors.accent,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                    elevation: 4,
+                  },
                 ]}
                 onPress={() => router.push('/(tabs)/add')}
               >
-                <ThemedText style={styles.fabText}>+</ThemedText>
+                <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
               </TouchableOpacity>
             ) : null
           }
@@ -1219,10 +1265,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#cbc0ab',
   },
   fabText: {
-    color: 'white',
     fontSize: 32,
     fontWeight: 'bold',
     marginTop: -2,

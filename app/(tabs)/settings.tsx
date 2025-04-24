@@ -370,12 +370,14 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: colors.background, paddingTop: headerHeight },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{ paddingBottom: 40, paddingTop: headerHeight }}
     >
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <ThemedText style={[styles.sectionTitle]}>Notifications</ThemedText>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
@@ -394,7 +396,11 @@ export default function SettingsScreen() {
       </View>
 
       {/* Theme Section */}
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <ThemedText style={[styles.sectionTitle]}>Appearance</ThemedText>
         <View style={styles.setting}>
           <ThemedText style={[styles.settingText]}>Theme</ThemedText>
@@ -437,7 +443,11 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <ThemedText style={[styles.sectionTitle]}>General</ThemedText>
         <TouchableOpacity
           style={styles.setting}
@@ -474,14 +484,22 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={24} color="#64403E" />
           <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
@@ -491,7 +509,11 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <ThemedText style={[styles.sectionTitle]}>Subscription</ThemedText>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
@@ -552,7 +574,11 @@ export default function SettingsScreen() {
           )}
       </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
         <ThemedText style={[styles.version, { color: colors.secondaryText }]}>
           Version 1.0.0
         </ThemedText>
@@ -560,7 +586,11 @@ export default function SettingsScreen() {
 
       {/* Test Notification Button - Only in development mode */}
       {process.env.NODE_ENV === 'development' && (
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <View style={[styles.section, { 
+          backgroundColor: colors.card,
+          borderWidth: 1,
+          borderColor: colors.border
+        }]}>
           <TouchableOpacity
             style={{
               backgroundColor: '#007AFF',
