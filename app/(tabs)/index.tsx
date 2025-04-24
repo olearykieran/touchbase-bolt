@@ -14,7 +14,7 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Phone,
   Mail,
@@ -187,6 +187,8 @@ function ContactsScreen(props: any) {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const { colors, colorScheme } = useTheme();
   const headerHeight = useHeaderHeight();
+  const appStateRef = useRef(AppState.currentState);
+  const isRefreshingRef = useRef(false);
 
   // Onboarding state
   const onboardingShownKey = 'onboarding_shown_v2';
@@ -205,43 +207,48 @@ function ContactsScreen(props: any) {
   useEffect(() => {
     const initialRefresh = async () => {
       console.log('Initial app mount - refreshing profile data');
-      // Force clear any error state that might be cached
+      // Force clear any error state that might be cached - do this upfront
       setError(null);
       clearError();
 
-      // Wait for profile refresh to complete
-      const success = await refreshUserProfile();
+      // Wait for profile refresh to complete, but don't update state here directly
+      const success = await refreshUserProfile(false);
       console.log('Initial profile refresh completed:', success);
+      if (success === 'subscribed') {
+        setError(null);
+        clearError();
+      }
 
       // Force refresh contacts to ensure UI is up to date
       await fetchContacts();
     };
 
     initialRefresh();
-  }, []);
+  }, []); // Keep dependencies empty for initial mount
 
   useEffect(() => {
-    const subscription = AppState.addEventListener(
-      'change',
-      async (nextAppState) => {
-        if (nextAppState === 'active') {
-          const needsRefresh = await AsyncStorage.getItem(
-            'need_profile_refresh'
-          );
-          if (needsRefresh === 'true') {
-            console.log('App became active - refreshing profile after payment');
-            await refreshUserProfile();
-            // Clear the flag
-            await AsyncStorage.removeItem('need_profile_refresh');
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      const prev = appStateRef.current;
+      if ((prev === 'background' || prev === 'inactive') && nextAppState === 'active' && !isRefreshingRef.current) {
+        isRefreshingRef.current = true;
+        const needsRefresh = await AsyncStorage.getItem('need_profile_refresh');
+        if (needsRefresh === 'true') {
+          console.log('App became active - refreshing profile after payment');
+          await AsyncStorage.removeItem('need_profile_refresh');
+          const refreshStatus = await refreshUserProfile(false);
+          if (refreshStatus === 'subscribed') {
+            console.log('App active refresh: User has active subscription, clearing errors');
+            setError(null);
+            clearError();
           }
         }
+        isRefreshingRef.current = false;
       }
-    );
+      appStateRef.current = nextAppState;
+    });
 
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+    return () => subscription.remove();
+  }, [setError, clearError]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -290,22 +297,18 @@ function ContactsScreen(props: any) {
       });
 
       // Before generating message, refresh profile to ensure we have latest subscription status
-      await refreshUserProfile();
+      const profileStatus = await refreshUserProfile(false);
+      if (profileStatus === 'error') {
+        throw new Error('Could not verify subscription status. Please try again.');
+      }
 
-      // IMPORTANT: Check subscription status LOCALLY before making the API call
-      // Get profile to directly check subscription status
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-      if (!session) {
-        Alert.alert('Error', 'You must be logged in to generate messages.');
-        setLoadingState(null);
-        return;
-      }
 
-      if (sessionError) {
-        throw new Error('Please sign in again');
+      if (!session || sessionError) {
+        throw new Error(sessionError?.message || 'Please sign in again');
       }
 
       const customPromptToUse = prompt || customPrompt;
@@ -601,7 +604,7 @@ function ContactsScreen(props: any) {
                   <ThemedText
                     style={[styles.badgeText, { color: colors.accent }]}
                   >
-                    {streakBadge}
+                    🔥 {streakBadge}
                   </ThemedText>
                 </View>
               )}
@@ -619,33 +622,27 @@ function ContactsScreen(props: any) {
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.contactDetails}>
-            {item.phone && (
+          <View style={styles.contactDetailsRow}>
+            <ThemedText
+              style={[styles.contactPhone, { color: colors.secondaryText }]}
+            >
+              {item.phone}
+            </ThemedText>
+            {item.birthday && (
               <ThemedText
-                style={[styles.contactText, { color: colors.secondaryText }]}
+                style={[
+                  styles.contactBirthday,
+                  { color: colors.secondaryText },
+                ]}
               >
-                {item.phone}
-                {item.birthday && ' '} {/* Add space here */}
-                {item.birthday && (
-                  <ThemedText style={styles.birthdayText}>
-                    🎂 {format(parseISO(item.birthday), 'MMM d')}
-                    {(() => {
-                      const days = getBirthdayCountdown(item.birthday);
-                      if (days === null) return '';
-                      if (days === 0) return ' (Today!)';
-                      if (days === 1) return ' (Tomorrow)';
-                      if (days > 0) return ` (${days} days left)`;
-                      return '';
-                    })()}
-                  </ThemedText>
-                )}
-              </ThemedText>
-            )}
-            {item.email && (
-              <ThemedText
-                style={[styles.contactText, { color: colors.secondaryText }]}
-              >
-                {item.email}
+                🎂 {format(parseISO(item.birthday), 'MMM d')}
+                {(() => {
+                  const days = getBirthdayCountdown(item.birthday);
+                  if (days === null) return '';
+                  if (days === 0) return ' (Today!)';
+                  if (days === 1) return ' (Tomorrow)';
+                  return ` (in ${days} days)`;
+                })()}
               </ThemedText>
             )}
           </View>
@@ -745,47 +742,48 @@ function ContactsScreen(props: any) {
   }
 
   // Create a profile refresh function to update subscription status
-  const refreshUserProfile = async () => {
+  const refreshUserProfile = async (
+    updateStateInternally: boolean = true
+  ): Promise<'subscribed' | 'free' | 'error'> => {
     try {
       console.log('REFRESH: Forcing complete profile refresh');
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-      if (!session) {
+
+      if (sessionError || !session) {
         console.error('REFRESH: Session error:', sessionError);
-        return false;
+        return 'error';
       }
 
-      // Force refresh the profile data with no caching
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('subscription_status')
         .eq('id', session.user.id)
         .single();
 
       if (error || !data) {
         console.error('REFRESH: Profile fetch error:', error);
-        return false;
+        return 'error';
       }
 
-      console.log('REFRESH: Current user profile:', data);
+      console.log('REFRESH: Current user profile status:', data.subscription_status);
 
-      // If subscription is active, forcefully clear any payment-related errors
       if (data.subscription_status !== 'free') {
-        console.log('REFRESH: User has active subscription, clearing errors');
-        setError(null);
-        // Force clear the error immediately
-        clearError();
-        return true;
+        if (updateStateInternally) {
+          console.log('REFRESH: User has active subscription, clearing errors (internal)');
+          setError(null);
+          clearError();
+        }
+        return 'subscribed';
       } else {
         console.log('REFRESH: User still on free tier');
+        return 'free';
       }
-
-      return true;
     } catch (err) {
       console.error('REFRESH: Profile refresh error:', err);
-      return false;
+      return 'error';
     }
   };
 
@@ -1002,8 +1000,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  contactDetails: {
-    marginBottom: 12,
+  contactDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  contactPhone: {
+    fontSize: 14,
+  },
+  contactBirthday: {
+    fontSize: 14,
+    marginLeft: 8,
   },
   contactText: {
     fontSize: 14,
@@ -1169,9 +1176,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   birthdayText: {
-    color: '#666',
     fontSize: 13,
-    marginLeft: 4,
   },
   headerActions: {
     flexDirection: 'row',

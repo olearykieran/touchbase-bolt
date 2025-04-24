@@ -76,10 +76,50 @@ serve(async (req: Request) => {
       const userId = profile.id;
       console.log('Found user ID from customer:', userId);
       
-      const planId = invoice.lines.data[0].plan?.id ?? '';
-      const periodEnd = invoice.lines.data[0].period?.end;
-      const status = planId.includes('year') ? 'yearly' : 'monthly';
+      // Log the entire invoice data structure for debugging
+      console.log('Invoice data structure:', JSON.stringify(invoice.lines.data[0], null, 2));
       
+      // Try multiple approaches to get the price ID
+      let planId = '';
+      
+      // MAIN APPROACH: Get price ID from pricing.price_details.price (this is the correct location)
+      if (invoice.lines.data[0].pricing?.price_details?.price) {
+        planId = invoice.lines.data[0].pricing.price_details.price;
+        console.log('Found plan ID from pricing.price_details.price:', planId);
+      } 
+      // Fallback approaches if for some reason pricing structure changes
+      else if (invoice.lines.data[0].plan?.id) {
+        planId = invoice.lines.data[0].plan.id;
+        console.log('Found plan ID from plan.id:', planId);
+      } 
+      else if (invoice.lines.data[0].price?.id) {
+        planId = invoice.lines.data[0].price.id;
+        console.log('Found plan ID from price.id:', planId);
+      }
+      else if (invoice.lines.data[0].metadata?.price_id) {
+        planId = invoice.lines.data[0].metadata.price_id;
+        console.log('Found plan ID from metadata.price_id:', planId);
+      }
+      
+      const periodEnd = invoice.lines.data[0].period?.end;
+      
+      // Use hardcoded yearly price ID from app.json
+      const yearlyPriceId = 'price_1RH9XxBUkwoMRVFAa6lQd7ih';
+      
+      // Determine if yearly based on price ID
+      let isYearly = planId === yearlyPriceId;
+      
+      // BACKUP CHECK: Also check the description for "year" as a fallback method
+      const description = invoice.lines.data[0].description || '';
+      if (!isYearly && description.toLowerCase().includes('year')) {
+        isYearly = true;
+        console.log('Detected yearly plan from description:', description);
+      }
+      
+      const status = isYearly ? 'yearly' : 'monthly';
+      
+      console.log(`Plan ID: ${planId}, Yearly Price ID: ${yearlyPriceId}, Is Yearly: ${isYearly}`);
+      console.log(`Description: ${description}`);
       console.log(`Updating subscription for user ${userId} to ${status}`);
       console.log(`Period end: ${periodEnd ? new Date(periodEnd * 1000).toISOString() : 'null'}`);
       
@@ -117,7 +157,7 @@ serve(async (req: Request) => {
       try {
         const { data, error } = await supabaseAdmin
           .from('profiles')
-          .update({ subscription_status: 'free', subscription_end: new Date().toISOString() })
+          .update({ subscription_status: 'free' })
           .eq('id', userId);
         
         if (error) {

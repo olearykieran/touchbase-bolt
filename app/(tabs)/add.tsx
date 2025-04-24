@@ -268,7 +268,7 @@ export default function AddContactScreen() {
                 <ThemedText
                   style={[styles.contactPickerText, { color: colors.accent }]}
                 >
-                  Add from Contacts
+                  Click to Add from Contacts
                 </ThemedText>
               </TouchableOpacity>
             </Tooltip>
@@ -284,12 +284,14 @@ export default function AddContactScreen() {
               <ThemedText
                 style={[styles.contactPickerText, { color: colors.accent }]}
               >
-                Add from Contacts
+                Click to Add from Contacts
               </ThemedText>
             </TouchableOpacity>
           ))}
 
-        <ThemedText style={[styles.label, { color: colors.text }]}>Name</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Name
+        </ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -300,7 +302,9 @@ export default function AddContactScreen() {
           placeholder="Enter name"
         />
 
-        <ThemedText style={[styles.label, { color: colors.text }]}>Email</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Email
+        </ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -313,7 +317,9 @@ export default function AddContactScreen() {
           autoCapitalize="none"
         />
 
-        <ThemedText style={[styles.label, { color: colors.text }]}>Phone</ThemedText>
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Phone
+        </ThemedText>
         <TextInput
           style={[
             styles.input,
@@ -471,9 +477,7 @@ export default function AddContactScreen() {
           ) : (
             <>
               <UserPlus size={24} color="#fff" />
-              <ThemedText
-                style={[styles.submitButtonText, { color: '#fff' }]}
-              >
+              <ThemedText style={[styles.submitButtonText, { color: '#fff' }]}>
                 Add Contact
               </ThemedText>
             </>

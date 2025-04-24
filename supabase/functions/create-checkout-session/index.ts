@@ -8,13 +8,21 @@ const supabaseUrl = Deno.env.get('PROJECT_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+// Load pricing IDs from environment
+const monthlyPrice = Deno.env.get('STRIPE_MONTHLY_PRICE_ID')!;
+const yearlyPrice  = Deno.env.get('STRIPE_YEARLY_PRICE_ID')!;
+
 // Deep link URLs to redirect back to the mobile app
 const SUCCESS_URL = 'https://redirect-pages-2qxuawwdm-kieran-olearys-projects.vercel.app/payment-success.html';
 const CANCEL_URL = 'https://redirect-pages-2qxuawwdm-kieran-olearys-projects.vercel.app/payment-cancel.html';
 
 serve(async (req: Request) => {
   try {
-    const { priceId, userId, email } = await req.json();
+    const { priceId: incomingPriceId, userId, email } = await req.json();
+    
+    // Choose price from incoming or fallback
+    const price = incomingPriceId || monthlyPrice;
+    console.log('create-checkout-session: using price', price);
     
     // First, check if customer already exists for this user
     let customerId;
@@ -51,7 +59,7 @@ serve(async (req: Request) => {
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price, quantity: 1 }],
       success_url: SUCCESS_URL,
       cancel_url: CANCEL_URL,
       metadata: { user_id: userId },
