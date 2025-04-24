@@ -227,25 +227,36 @@ function ContactsScreen(props: any) {
   }, []); // Keep dependencies empty for initial mount
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', async (nextAppState) => {
-      const prev = appStateRef.current;
-      if ((prev === 'background' || prev === 'inactive') && nextAppState === 'active' && !isRefreshingRef.current) {
-        isRefreshingRef.current = true;
-        const needsRefresh = await AsyncStorage.getItem('need_profile_refresh');
-        if (needsRefresh === 'true') {
-          console.log('App became active - refreshing profile after payment');
-          await AsyncStorage.removeItem('need_profile_refresh');
-          const refreshStatus = await refreshUserProfile(false);
-          if (refreshStatus === 'subscribed') {
-            console.log('App active refresh: User has active subscription, clearing errors');
-            setError(null);
-            clearError();
+    const subscription = AppState.addEventListener(
+      'change',
+      async (nextAppState) => {
+        const prev = appStateRef.current;
+        if (
+          (prev === 'background' || prev === 'inactive') &&
+          nextAppState === 'active' &&
+          !isRefreshingRef.current
+        ) {
+          isRefreshingRef.current = true;
+          const needsRefresh = await AsyncStorage.getItem(
+            'need_profile_refresh'
+          );
+          if (needsRefresh === 'true') {
+            console.log('App became active - refreshing profile after payment');
+            await AsyncStorage.removeItem('need_profile_refresh');
+            const refreshStatus = await refreshUserProfile(false);
+            if (refreshStatus === 'subscribed') {
+              console.log(
+                'App active refresh: User has active subscription, clearing errors'
+              );
+              setError(null);
+              clearError();
+            }
           }
+          isRefreshingRef.current = false;
         }
-        isRefreshingRef.current = false;
+        appStateRef.current = nextAppState;
       }
-      appStateRef.current = nextAppState;
-    });
+    );
 
     return () => subscription.remove();
   }, [setError, clearError]);
@@ -299,7 +310,9 @@ function ContactsScreen(props: any) {
       // Before generating message, refresh profile to ensure we have latest subscription status
       const profileStatus = await refreshUserProfile(false);
       if (profileStatus === 'error') {
-        throw new Error('Could not verify subscription status. Please try again.');
+        throw new Error(
+          'Could not verify subscription status. Please try again.'
+        );
       }
 
       const {
@@ -768,11 +781,16 @@ function ContactsScreen(props: any) {
         return 'error';
       }
 
-      console.log('REFRESH: Current user profile status:', data.subscription_status);
+      console.log(
+        'REFRESH: Current user profile status:',
+        data.subscription_status
+      );
 
       if (data.subscription_status !== 'free') {
         if (updateStateInternally) {
-          console.log('REFRESH: User has active subscription, clearing errors (internal)');
+          console.log(
+            'REFRESH: User has active subscription, clearing errors (internal)'
+          );
           setError(null);
           clearError();
         }
@@ -876,7 +894,7 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText>
+                    <ThemedText style={[{ color: 'black' }]}>
                       This is where your contacts will appear. Let's add your
                       first contact!
                     </ThemedText>
@@ -903,7 +921,7 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText>
+                    <ThemedText style={[{ color: 'black' }]}>
                       Tap here to add your first contact. You can import from
                       your device or enter manually.
                     </ThemedText>
@@ -912,7 +930,6 @@ function ContactsScreen(props: any) {
                   onClose={handleNextOnboarding}
                   showChildInTooltip={false}
                   useInteractionManager={true}
-                  tooltipStyle={{ marginLeft: -60 }}
                 >
                   <TouchableOpacity
                     style={[styles.fab, { marginTop: 24 }]}

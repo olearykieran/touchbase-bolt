@@ -247,7 +247,7 @@ export default function AddContactScreen() {
             <Tooltip
               isVisible={true}
               content={
-                <ThemedText>
+                <ThemedText style={[{ color: 'black' }]}>
                   You can add contacts from your phone by clicking the "Add from
                   Contacts" button.
                 </ThemedText>
@@ -338,7 +338,7 @@ export default function AddContactScreen() {
           <Tooltip
             isVisible={true}
             content={
-              <ThemedText>
+              <ThemedText style={[{ color: 'black' }]}>
                 You can choose how often you want to be reminded to reach out to
                 this person by selecting contact frequency.
               </ThemedText>
@@ -423,7 +423,7 @@ export default function AddContactScreen() {
           <Tooltip
             isVisible={true}
             content={
-              <ThemedText>
+              <ThemedText style={[{ color: 'black' }]}>
                 You can specify when you want to first be reminded to reach out
                 to this contact here.
               </ThemedText>
