@@ -246,7 +246,7 @@ export default function AddContactScreen() {
             <Tooltip
               isVisible={true}
               content={
-                <ThemedText style={[{ color: 'black' }]}>
+                <ThemedText style={{ color: '#000000' }}>
                   You can add contacts from your phone by clicking the "Add from
                   Contacts" button.
                 </ThemedText>
@@ -259,10 +259,10 @@ export default function AddContactScreen() {
               <TouchableOpacity
                 style={[
                   styles.contactPickerButton,
-                  { 
+                  {
                     backgroundColor: colors.white,
                     borderWidth: 1,
-                    borderColor: colors.border 
+                    borderColor: colors.border,
                   },
                 ]}
                 onPress={() => setShowContactPicker(true)}
@@ -279,10 +279,10 @@ export default function AddContactScreen() {
             <TouchableOpacity
               style={[
                 styles.contactPickerButton,
-                { 
+                {
                   backgroundColor: colors.white,
                   borderWidth: 1,
-                  borderColor: colors.border 
+                  borderColor: colors.border,
                 },
               ]}
               onPress={() => setShowContactPicker(true)}
@@ -302,11 +302,11 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { 
+            {
               backgroundColor: colors.white,
               borderWidth: 1,
               borderColor: colors.border,
-              color: colors.text 
+              color: colors.text,
             },
           ]}
           placeholder="Name"
@@ -321,11 +321,11 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { 
+            {
               backgroundColor: colors.white,
               borderWidth: 1,
               borderColor: colors.border,
-              color: colors.text 
+              color: colors.text,
             },
           ]}
           placeholder="Email"
@@ -342,11 +342,11 @@ export default function AddContactScreen() {
         <TextInput
           style={[
             styles.input,
-            { 
+            {
               backgroundColor: colors.white,
               borderWidth: 1,
               borderColor: colors.border,
-              color: colors.text 
+              color: colors.text,
             },
           ]}
           placeholder="Phone"
@@ -363,7 +363,7 @@ export default function AddContactScreen() {
           <Tooltip
             isVisible={true}
             content={
-              <ThemedText style={[{ color: 'black' }]}>
+              <ThemedText style={{ color: '#000000' }}>
                 You can choose how often you want to be reminded to reach out to
                 this person by selecting contact frequency.
               </ThemedText>
@@ -429,10 +429,10 @@ export default function AddContactScreen() {
         <TouchableOpacity
           style={[
             styles.datePickerButton,
-            { 
+            {
               backgroundColor: colors.white,
               borderWidth: 1,
-              borderColor: colors.border 
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setShowBirthdayPicker(true)}
@@ -455,7 +455,7 @@ export default function AddContactScreen() {
           <Tooltip
             isVisible={true}
             content={
-              <ThemedText style={[{ color: 'black' }]}>
+              <ThemedText style={{ color: '#000000' }}>
                 You can specify when you want to first be reminded to reach out
                 to this contact here.
               </ThemedText>
@@ -468,10 +468,10 @@ export default function AddContactScreen() {
             <TouchableOpacity
               style={[
                 styles.datePickerButton,
-                { 
+                {
                   backgroundColor: colors.white,
                   borderWidth: 1,
-                  borderColor: colors.border 
+                  borderColor: colors.border,
                 },
               ]}
               onPress={() => setShowFirstContactDatePicker(true)}
@@ -487,10 +487,10 @@ export default function AddContactScreen() {
           <TouchableOpacity
             style={[
               styles.datePickerButton,
-              { 
+              {
                 backgroundColor: colors.white,
                 borderWidth: 1,
-                borderColor: colors.border 
+                borderColor: colors.border,
               },
             ]}
             onPress={() => setShowFirstContactDatePicker(true)}
@@ -517,9 +517,7 @@ export default function AddContactScreen() {
           ) : (
             <>
               <UserPlus size={24} color="#fff" />
-              <ThemedText
-                style={[styles.submitButtonText, { color: '#fff' }]}
-              >
+              <ThemedText style={[styles.submitButtonText, { color: '#fff' }]}>
                 Add Contact
               </ThemedText>
             </>

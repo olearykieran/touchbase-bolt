@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -17,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
 import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
+import { ThemedText } from '@/components/ThemedText';
 
 function SignUpInner() {
   const [email, setEmail] = useState('');
@@ -26,8 +28,10 @@ function SignUpInner() {
   const [success, setSuccess] = useState(false);
   const [logoReady, setLogoReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
+
+  const AnimatedThemedText = Animated.createAnimatedComponent(ThemedText);
 
   useEffect(() => {
     Asset.loadAsync(require('../../assets/images/icon.png')).then(() =>
@@ -77,22 +81,30 @@ function SignUpInner() {
           <View
             style={[styles.formContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.title, { color: colors.text }]}>
+            <ThemedText style={[styles.title, { color: colors.text }]}>
               Create Account
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+            </ThemedText>
+            <ThemedText
+              style={[styles.subtitle, { color: colors.secondaryText }]}
+            >
               Join KeepTouch to stay connected!
-            </Text>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            </ThemedText>
+            {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
             {success && (
-              <Text style={styles.successText}>
+              <ThemedText style={styles.successText}>
                 Account created! Check your email for a confirmation link.
-              </Text>
+              </ThemedText>
             )}
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.background, color: colors.text },
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#181818' : colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
               ]}
               placeholder="Email"
               value={email}
@@ -107,7 +119,13 @@ function SignUpInner() {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.background, color: colors.text },
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#181818' : colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
               ]}
               placeholder="Password"
               value={password}
@@ -129,7 +147,9 @@ function SignUpInner() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
+                <ThemedText style={styles.buttonText}>
+                  Create Account
+                </ThemedText>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -137,11 +157,11 @@ function SignUpInner() {
               onPress={() => router.replace('/sign-in')}
               disabled={loading}
             >
-              <Text
+              <ThemedText
                 style={[styles.secondaryButtonText, { color: colors.accent }]}
               >
                 Already have an account? Sign in
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
@@ -158,14 +178,14 @@ function SignUpInner() {
                   style={[styles.logo, { opacity: fadeAnim }]}
                   resizeMode="contain"
                 />
-                <Animated.Text
+                <AnimatedThemedText
                   style={[
                     styles.appName,
                     { color: colors.accent, opacity: fadeAnim },
                   ]}
                 >
                   KeepTouch
-                </Animated.Text>
+                </AnimatedThemedText>
               </>
             )}
           </View>
@@ -218,11 +238,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   button: {
     backgroundColor: '#9d9e9e',

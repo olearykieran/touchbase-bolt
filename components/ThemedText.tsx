@@ -3,25 +3,24 @@ import React from 'react';
 import { Text, TextProps, StyleSheet } from 'react-native';
 import { useTheme } from './ThemeProvider'; // Adjust path if necessary
 
-type ThemedTextProps = TextProps & {
-  // Add any custom props specific to your themed text if needed
-  // For example, type?: 'default' | 'title' | 'link';
-};
+type ThemedTextProps = TextProps;
 
-export function ThemedText({ style, ...restProps }: ThemedTextProps) {
-  const { colors, defaultFontFamily } = useTheme();
-
-  return (
-    <Text
-      style={[
-        { fontFamily: defaultFontFamily, color: colors.text }, // Apply default font and color
-        styles.default, // Base styles if any
-        style, // Apply any styles passed via props (overrides defaults)
-      ]}
-      {...restProps} // Pass down other Text props
-    />
-  );
-}
+export const ThemedText = React.forwardRef<Text, ThemedTextProps>(
+  ({ style, ...restProps }, ref) => {
+    const { colors, defaultFontFamily } = useTheme();
+    return (
+      <Text
+        ref={ref}
+        style={[
+          { fontFamily: defaultFontFamily, color: colors.text },
+          styles.default,
+          style,
+        ]}
+        {...restProps}
+      />
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   default: {

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -18,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
 import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
+import { ThemedText } from '@/components/ThemedText';
 
 function SignInInner() {
   const [email, setEmail] = useState('');
@@ -26,7 +28,7 @@ function SignInInner() {
   const [error, setError] = useState<string | null>(null);
   const [logoReady, setLogoReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -74,17 +76,25 @@ function SignInInner() {
           <View
             style={[styles.formContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.title, { color: colors.text }]}>
+            <ThemedText style={[styles.title, { color: colors.text }]}>
               Welcome Back
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+            </ThemedText>
+            <ThemedText
+              style={[styles.subtitle, { color: colors.secondaryText }]}
+            >
               Sign in to continue
-            </Text>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            </ThemedText>
+            {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.background, color: colors.text },
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#181818' : colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
               ]}
               placeholder="Email"
               value={email}
@@ -99,7 +109,13 @@ function SignInInner() {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.background, color: colors.text },
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#181818' : colors.white,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
               ]}
               placeholder="Password"
               value={password}
@@ -121,7 +137,7 @@ function SignInInner() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <ThemedText style={styles.buttonText}>Sign In</ThemedText>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -129,11 +145,11 @@ function SignInInner() {
               onPress={() => router.replace('/sign-up')}
               disabled={loading}
             >
-              <Text
+              <ThemedText
                 style={[styles.secondaryButtonText, { color: colors.accent }]}
               >
                 Don't have an account? Create one
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
@@ -210,11 +226,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   button: {
     backgroundColor: '#9d9e9e',

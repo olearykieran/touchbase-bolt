@@ -894,7 +894,7 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={{ fontSize: 14, textAlign: 'center' }}>
+                    <ThemedText style={{ fontSize: 14, textAlign: 'center', color: '#000000' }}>
                       Add your first contact to get started!
                     </ThemedText>
                   }
@@ -911,7 +911,7 @@ function ContactsScreen(props: any) {
                       {
                         marginTop: 24,
                         backgroundColor: colors.accent,
-                        shadowColor: "#000",
+                        shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.2,
                         shadowRadius: 4,
@@ -920,7 +920,9 @@ function ContactsScreen(props: any) {
                     ]}
                     onPress={() => router.push('/(tabs)/add')}
                   >
-                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
+                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+                      +
+                    </ThemedText>
                   </TouchableOpacity>
                 </Tooltip>
               ) : (
@@ -934,7 +936,7 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={{ fontSize: 14, textAlign: 'center' }}>
+                    <ThemedText style={{ fontSize: 14, textAlign: 'center', color: '#000000' }}>
                       Tap here to add your first contact. You can import from
                       your device or enter manually.
                     </ThemedText>
@@ -952,7 +954,7 @@ function ContactsScreen(props: any) {
                       {
                         marginTop: 24,
                         backgroundColor: colors.accent,
-                        shadowColor: "#000",
+                        shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.2,
                         shadowRadius: 4,
@@ -961,7 +963,9 @@ function ContactsScreen(props: any) {
                     ]}
                     onPress={() => router.push('/(tabs)/add')}
                   >
-                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
+                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+                      +
+                    </ThemedText>
                   </TouchableOpacity>
                 </Tooltip>
               ) : (
@@ -971,7 +975,7 @@ function ContactsScreen(props: any) {
                     {
                       marginTop: 24,
                       backgroundColor: colors.accent,
-                      shadowColor: "#000",
+                      shadowColor: '#000',
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: 0.2,
                       shadowRadius: 4,
@@ -980,7 +984,9 @@ function ContactsScreen(props: any) {
                   ]}
                   onPress={() => router.push('/(tabs)/add')}
                 >
-                  <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
+                  <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+                    +
+                  </ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -994,7 +1000,7 @@ function ContactsScreen(props: any) {
                     alignSelf: 'center',
                     marginVertical: 32,
                     backgroundColor: colors.accent,
-                    shadowColor: "#000",
+                    shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.2,
                     shadowRadius: 4,
@@ -1003,7 +1009,9 @@ function ContactsScreen(props: any) {
                 ]}
                 onPress={() => router.push('/(tabs)/add')}
               >
-                <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>+</ThemedText>
+                <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+                  +
+                </ThemedText>
               </TouchableOpacity>
             ) : null
           }
