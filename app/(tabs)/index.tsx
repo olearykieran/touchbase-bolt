@@ -894,7 +894,13 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={{ fontSize: 14, textAlign: 'center', color: '#000000' }}>
+                    <ThemedText
+                      style={{
+                        fontSize: 14,
+                        textAlign: 'center',
+                        color: '#000000',
+                      }}
+                    >
                       Add your first contact to get started!
                     </ThemedText>
                   }
@@ -904,27 +910,7 @@ function ContactsScreen(props: any) {
                   contentStyle={{ padding: 10 }}
                   showChildInTooltip={false}
                   useInteractionManager={true}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.fab,
-                      {
-                        marginTop: 24,
-                        backgroundColor: colors.accent,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 4,
-                        elevation: 4,
-                      },
-                    ]}
-                    onPress={() => router.push('/(tabs)/add')}
-                  >
-                    <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
-                      +
-                    </ThemedText>
-                  </TouchableOpacity>
-                </Tooltip>
+                ></Tooltip>
               ) : (
                 <ThemedText
                   style={[styles.emptyText, { color: colors.secondaryText }]}
@@ -936,7 +922,13 @@ function ContactsScreen(props: any) {
                 <Tooltip
                   isVisible={true}
                   content={
-                    <ThemedText style={{ fontSize: 14, textAlign: 'center', color: '#000000' }}>
+                    <ThemedText
+                      style={{
+                        fontSize: 14,
+                        textAlign: 'center',
+                        color: '#000000',
+                      }}
+                    >
                       Tap here to add your first contact. You can import from
                       your device or enter manually.
                     </ThemedText>

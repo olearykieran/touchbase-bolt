@@ -2,7 +2,7 @@
   "expo": {
     "name": "KeepTouch",
     "slug": "bolt-expo-nativewind",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "touchbasebolt",
@@ -20,9 +20,7 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
@@ -31,9 +29,7 @@
         "backgroundColor": "#f8f5ed"
       },
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "Allow Keep Connect to access your contacts.",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -80,6 +76,6 @@
       "stripeMonthlyPriceId": "price_1RGnMkBaBfFAgOwMe1ABL45G",
       "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA"
     },
-    "newArchEnabled": true
+    "newArchEnabled": false
   }
 }
