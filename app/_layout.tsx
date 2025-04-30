@@ -13,6 +13,8 @@ import {
   Alert,
   AppState,
   Linking,
+  Text,
+  ErrorUtils,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
@@ -26,6 +28,33 @@ import {
   configureNotificationHandler,
   registerForPushNotificationsAsync,
 } from '../lib/notificationUtils';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
+
+// --- Global Error Handlers ---
+// // Catch unhandled promise rejections - REMOVED as process.on is not available in RN
+// process.on('unhandledRejection', (reason, promise) => {
+//   console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+//   // Optionally log reason.stack or more details if available
+//   // Consider sending this to an error reporting service
+// });
+
+// Catch synchronous errors (might be limited in usefulness with Hermes/newer RN)
+if (ErrorUtils) {
+  // Check if ErrorUtils is available
+  ErrorUtils.setGlobalHandler((error, isFatal) => {
+    console.error(
+      'Global error caught by ErrorUtils:',
+      error,
+      'Is Fatal:',
+      isFatal
+    );
+    // Again, consider sending this to an error reporting service
+    // Be cautious with actions here, as this handler might be deprecated or behave unexpectedly
+  });
+} else {
+  console.warn('ErrorUtils is not available globally or not imported.');
+}
+// --- End Global Error Handlers ---
 
 // Define or import the type for colors if not already available globally
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
@@ -154,7 +183,9 @@ function RootLayoutNav({
       >
         <View style={modalStyles.overlay}>
           <View style={modalStyles.modalBox}>
-            <ThemedText style={modalStyles.title}>Enable Notifications</ThemedText>
+            <ThemedText style={modalStyles.title}>
+              Enable Notifications
+            </ThemedText>
             <ThemedText style={modalStyles.body}>
               We use notifications to remind you to reach out to your contacts
               and celebrate birthdays. Please enable notifications to stay
@@ -164,7 +195,9 @@ function RootLayoutNav({
               style={modalStyles.button}
               onPress={handleRequestNotifications}
             >
-              <ThemedText style={modalStyles.buttonText}>Enable Notifications</ThemedText>
+              <ThemedText style={modalStyles.buttonText}>
+                Enable Notifications
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,8 +206,30 @@ function RootLayoutNav({
   );
 }
 
+// Error Fallback Component
+function ErrorFallback({ error }: FallbackProps) {
+  // TODO: Improve this fallback UI - maybe add a retry button?
+  // It might be helpful to log the error here as well.
+  // import { ThemedText } from '@/components/ThemedText'; // Consider using ThemedText if available
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+      }}
+    >
+      <Text style={{ color: 'red', marginBottom: 10, fontWeight: 'bold' }}>
+        Oops! Something went wrong.
+      </Text>
+      <Text style={{ color: 'red', textAlign: 'center' }}>{error.message}</Text>
+      {/* Add more details or a retry mechanism if needed */}
+    </View>
+  );
+}
+
 export default function RootLayout() {
-  const isFrameworkReady = useFrameworkReady();
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifChecked, setNotifChecked] = useState(false);
 
@@ -208,7 +263,7 @@ export default function RootLayout() {
 
   // Log font loading errors
   useEffect(() => {
-    if (fontError) {
+    if (fontError instanceof Error) {
       console.error('Font loading error:', fontError);
       // Optionally, show an error message to the user
     }
@@ -225,21 +280,32 @@ export default function RootLayout() {
     }
   };
 
-  // Wait until fonts are ready
+  // Check for font errors
+  if (fontError instanceof Error) {
+    // Render a specific error message for font loading issues
+    // Or potentially use the ErrorBoundary fallback directly?
+    // For now, let's just show a simple text message.
+    console.error('Font loading error:', fontError);
+    return <Text>Error loading fonts. Please restart the app.</Text>;
+  }
+
+  // Wait until fonts are ready (removed framework check)
   if (!fontsLoaded) {
-    // You might want to show a Splash Screen or loading indicator here
-    // For now, returning null keeps the splash screen visible (managed by useFrameworkReady)
-    return null;
+    // Render a loading indicator or null while waiting
+    // This prevents rendering RootLayoutNav before everything is ready
+    return null; // Or <ActivityIndicator />, etc.
   }
 
   return (
     <ThemeProvider>
-      {/* Pass state and handlers down to RootLayoutNav */}
-      <RootLayoutNav
-        showNotifModal={showNotifModal}
-        setShowNotifModal={setShowNotifModal}
-        handleRequestNotifications={handleRequestNotifications}
-      />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        {/* Now we are sure fonts and framework are ready */}
+        <RootLayoutNav
+          showNotifModal={showNotifModal}
+          setShowNotifModal={setShowNotifModal}
+          handleRequestNotifications={handleRequestNotifications}
+        />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

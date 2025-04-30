@@ -309,11 +309,18 @@ function ContactsScreen(props: any) {
 
       // Before generating message, refresh profile to ensure we have latest subscription status
       const profileStatus = await refreshUserProfile(false);
+
+      // Handle different profile statuses
       if (profileStatus === 'error') {
         throw new Error(
-          'Could not verify subscription status. Please try again.'
+          'Could not verify your account status. Please try again later.'
         );
       }
+      if (profileStatus === 'logged_out') {
+        // Specific message for logged-out users
+        throw new Error('Please sign in to generate messages.');
+      }
+      // If profileStatus is 'subscribed' or 'free', continue
 
       const {
         data: { session },
@@ -757,27 +764,35 @@ function ContactsScreen(props: any) {
   // Create a profile refresh function to update subscription status
   const refreshUserProfile = async (
     updateStateInternally: boolean = true
-  ): Promise<'subscribed' | 'free' | 'error'> => {
+  ): Promise<'subscribed' | 'free' | 'error' | 'logged_out'> => {
     try {
-      console.log('REFRESH: Forcing complete profile refresh');
+      console.log('REFRESH: Checking user session and profile');
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError || !session) {
-        console.error('REFRESH: Session error:', sessionError);
+      // Handle actual session errors first
+      if (sessionError) {
+        console.error('REFRESH: Supabase session error:', sessionError.message);
         return 'error';
       }
 
-      const { data, error } = await supabase
+      // Handle logged-out state
+      if (!session) {
+        console.log('REFRESH: User not logged in.');
+        return 'logged_out'; // Return specific status for logged out
+      }
+
+      // User is logged in, proceed to check profile/subscription
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('subscription_status')
         .eq('id', session.user.id)
         .single();
 
-      if (error || !data) {
-        console.error('REFRESH: Profile fetch error:', error);
+      if (profileError || !data) {
+        console.error('REFRESH: Profile fetch error:', profileError);
         return 'error';
       }
 
@@ -912,8 +927,8 @@ function ContactsScreen(props: any) {
                             color: '#000000',
                           }}
                         >
-                          Tap here to add your first contact. You can import from
-                          your device or enter manually.
+                          Tap here to add your first contact. You can import
+                          from your device or enter manually.
                         </ThemedText>
                       }
                       placement="top"
