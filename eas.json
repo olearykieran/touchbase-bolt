@@ -11,7 +11,22 @@
     "preview": {
       "distribution": "internal"
     },
-    "production": {}
+    "production": {},
+    "debug-production": {
+      "extends": "production",
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEBUG_MODE": "true"
+      },
+      "ios": {
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    }
   },
   "submit": {
     "production": {}

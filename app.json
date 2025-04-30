@@ -2,7 +2,7 @@
   "expo": {
     "name": "KeepTouch",
     "slug": "bolt-expo-nativewind",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "touchbasebolt",
@@ -24,17 +24,12 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#f8f5ed"
-      },
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "Allow Keep Connect to access your contacts.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.holygrailstudio.boltexponativewind",
-      "buildConfiguration": "Debug"
+      "bundleIdentifier": "com.holygrailstudio.boltexponativewind"
     },
     "android": {
       "adaptiveIcon": {
@@ -47,8 +42,7 @@
         "android.permission.READ_CONTACTS",
         "android.permission.WRITE_CONTACTS"
       ],
-      "package": "com.holygrailstudio.boltexponativewind",
-      "buildConfiguration": "debug"
+      "package": "com.holygrailstudio.boltexponativewind"
     },
     "web": {
       "bundler": "metro",
@@ -63,7 +57,16 @@
           "contactsPermission": "Allow Keep Connect to access your contacts."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "hgs-ae"
+        }
+      ],
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true
@@ -76,7 +79,8 @@
         "projectId": "f378a217-f470-4517-90db-7bb1b65a13a1"
       },
       "stripeMonthlyPriceId": "price_1RGnMkBaBfFAgOwMe1ABL45G",
-      "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA"
+      "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA",
+      "SENTRY_DSN": "REPLACE_WITH_YOUR_SENTRY_DSN_HERE"
     },
     "newArchEnabled": false
   }

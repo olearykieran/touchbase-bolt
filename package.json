@@ -8,7 +8,8 @@
     "build:web": "expo export --platform web",
     "lint": "expo lint",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "start": "expo start --dev-client"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
@@ -17,6 +18,7 @@
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@sentry/react-native": "^6.13.0",
     "@supabase/supabase-js": "^2.39.3",
     "date-fns": "^3.3.1",
     "expo": "~52.0.46",
@@ -25,6 +27,7 @@
     "expo-constants": "~17.0.8",
     "expo-contacts": "~14.0.5",
     "expo-dev-client": "~5.0.20",
+    "expo-device": "^7.0.3",
     "expo-font": "~13.0.4",
     "expo-haptics": "^14.0.1",
     "expo-linear-gradient": "^14.0.2",
@@ -36,6 +39,7 @@
     "expo-status-bar": "^2.0.1",
     "expo-symbols": "^0.2.2",
     "expo-system-ui": "~4.0.9",
+    "expo-updates": "~0.27.4",
     "expo-web-browser": "^14.0.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react-native": "^0.475.0",
@@ -44,7 +48,7 @@
     "react-error-boundary": "^5.0.0",
     "react-native": "0.76.9",
     "react-native-gesture-handler": "~2.20.2",
-    "react-native-reanimated": "^3.16.7",
+    "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",

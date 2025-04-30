@@ -36,6 +36,7 @@ import {
   parseISO,
 } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { captureException } from '@/lib/sentry';
 import React from 'react';
 import Constants from 'expo-constants';
 import { useTheme } from '../../components/ThemeProvider';
@@ -397,6 +398,14 @@ function ContactsScreen(props: any) {
         await Share.share({ message });
       }
     } catch (err: any) {
+      // Report error to Sentry with context
+      captureException(err, {
+        component: 'ContactsScreen',
+        action: 'handleMessageGeneration',
+        contactId: contact?.id,
+        messageType,
+      });
+
       setError(err.message);
       Alert.alert('Error', err.message);
     } finally {
