@@ -17,9 +17,7 @@
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
@@ -80,7 +78,7 @@
       },
       "stripeMonthlyPriceId": "price_1RGnMkBaBfFAgOwMe1ABL45G",
       "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA",
-      "SENTRY_DSN": "REPLACE_WITH_YOUR_SENTRY_DSN_HERE"
+      "SENTRY_DSN": "https://7aeca10e48ef9612852cb25fc090a711@o4509243376795648.ingest.us.sentry.io/4509243377582080"
     },
     "newArchEnabled": false
   }

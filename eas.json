@@ -6,12 +6,19 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "buildArtifactPaths": ["ios/build/*"]
+      }
     },
     "preview": {
       "distribution": "internal"
     },
-    "production": {},
+    "production": {
+      "ios": {
+        "buildArtifactPaths": ["ios/build/*"]
+      }
+    },
     "debug-production": {
       "extends": "production",
       "distribution": "internal",
@@ -20,7 +27,8 @@
         "EXPO_PUBLIC_DEBUG_MODE": "true"
       },
       "ios": {
-        "buildConfiguration": "Debug"
+        "buildConfiguration": "Debug",
+        "buildArtifactPaths": ["ios/build/*"]
       },
       "android": {
         "buildType": "apk",

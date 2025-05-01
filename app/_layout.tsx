@@ -1,10 +1,12 @@
+import { initSentry, captureException } from '@/lib/sentry';
+initSentry();
+
 import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
-import { initSentry, captureException } from '@/lib/sentry';
 import { checkEnvironmentVariables } from '@/lib/envCheck';
 import {
   Platform,
@@ -33,46 +35,8 @@ import {
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import * as Sentry from '@sentry/react-native';
 
-// Initialize Sentry as early as possible
-initSentry();
-
 // Check environment variables and capture any issues
 checkEnvironmentVariables();
-
-// --- Global Error Handlers ---
-// // Catch unhandled promise rejections - REMOVED as process.on is not available in RN
-// process.on('unhandledRejection', (reason, promise) => {
-//   console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
-//   // Optionally log reason.stack or more details if available
-//   // Consider sending this to an error reporting service
-// });
-
-// Set up error handling with Sentry
-
-// Catch synchronous errors (might be limited in usefulness with Hermes/newer RN)
-if (ErrorUtils) {
-  // Check if ErrorUtils is available
-  const originalHandler = ErrorUtils.getGlobalHandler();
-
-  ErrorUtils.setGlobalHandler((error, isFatal) => {
-    // Log to console
-    console.error(
-      'Global error caught by ErrorUtils:',
-      error,
-      'Is Fatal:',
-      isFatal
-    );
-
-    // Report to Sentry
-    Sentry.captureException(error);
-
-    // Call the original handler
-    originalHandler(error, isFatal);
-  });
-} else {
-  console.warn('ErrorUtils is not available globally or not imported.');
-}
-// --- End Global Error Handlers ---
 
 // Define or import the type for colors if not already available globally
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
