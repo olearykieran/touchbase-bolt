@@ -258,6 +258,7 @@ export const useContactStore = create<ContactStore>((set, get) => ({
       const currentStreak = contact.streak || 0;
 
       let newStreak = 1;
+      let wasLate = false;
       if (lastContact <= currentNextContactDate) {
         newStreak = currentStreak + 1;
         console.log(
@@ -265,6 +266,7 @@ export const useContactStore = create<ContactStore>((set, get) => ({
         );
       } else {
         console.log(`Contact ${contactId}: Late! Streak reset to 1`);
+        wasLate = true;
       }
 
       const { data, error } = await supabase
@@ -279,6 +281,30 @@ export const useContactStore = create<ContactStore>((set, get) => ({
         .single();
 
       if (error) throw error;
+
+      // If this contact was late, check if we need to reset global streak
+      if (wasLate) {
+        // Check if there are any other late contacts
+        const allContacts = currentState.contacts;
+        const now = new Date();
+        const hasOtherLateContacts = allContacts.some(c => {
+          if (c.id === contactId) return false; // Skip the one we just updated
+          const nextDate = new Date(c.nextContact);
+          return nextDate < now;
+        });
+
+        // If this was the only late contact, reset global streak
+        if (!hasOtherLateContacts) {
+          console.log('No other late contacts, resetting global streak to 0');
+          await supabase
+            .from('profiles')
+            .update({ 
+              global_streak: 0,
+              global_streak_last_updated: null 
+            })
+            .eq('id', user.id);
+        }
+      }
 
       set((state) => ({
         contacts: state.contacts.map((c) =>

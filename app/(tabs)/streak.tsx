@@ -31,48 +31,59 @@ const StreakScreen = () => {
     })
   );
 
+  // Define fetchGlobalStreak outside useEffect for reusability
+  const fetchGlobalStreak = async () => {
+    setGlobalStreakLoading(true);
+    setGlobalStreakError(null);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // First, try to fix streaks
+      console.log('Running streak fix...');
+      const { data: fixData, error: fixError } = await supabase.functions.invoke('fix-streaks');
+      if (fixError) {
+        console.error('Error fixing streaks:', fixError);
+      } else {
+        console.log('Streaks fixed:', fixData);
+      }
+
+      // Then fetch the updated global streak
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('global_streak')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        // Handle case where profile might not exist yet for older users
+        if (error.code === 'PGRST116') {
+          // code for 'Resource Not Found'
+          console.warn(
+            'User profile not found. Defaulting global streak to 0.'
+          );
+          setGlobalStreak(0); // Default to 0 if no profile
+        } else {
+          throw error; // Rethrow other errors
+        }
+      } else {
+        setGlobalStreak(profile?.global_streak ?? 0);
+      }
+    } catch (err) {
+      console.error('Error fetching global streak:', err);
+      setGlobalStreakError(
+        err instanceof Error ? err.message : 'Failed to fetch global streak'
+      );
+      setGlobalStreak(0); // Default on error
+    } finally {
+      setGlobalStreakLoading(false);
+    }
+  };
+
   // Fetch global streak from profile on mount
   useEffect(() => {
-    const fetchGlobalStreak = async () => {
-      setGlobalStreakLoading(true);
-      setGlobalStreakError(null);
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('global_streak')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          // Handle case where profile might not exist yet for older users
-          if (error.code === 'PGRST116') {
-            // code for 'Resource Not Found'
-            console.warn(
-              'User profile not found. Defaulting global streak to 0.'
-            );
-            setGlobalStreak(0); // Default to 0 if no profile
-          } else {
-            throw error; // Rethrow other errors
-          }
-        } else {
-          setGlobalStreak(profile?.global_streak ?? 0);
-        }
-      } catch (err) {
-        console.error('Error fetching global streak:', err);
-        setGlobalStreakError(
-          err instanceof Error ? err.message : 'Failed to fetch global streak'
-        );
-        setGlobalStreak(0); // Default on error
-      } finally {
-        setGlobalStreakLoading(false);
-      }
-    };
-
     fetchGlobalStreak();
   }, []); // Fetch only once on mount
 

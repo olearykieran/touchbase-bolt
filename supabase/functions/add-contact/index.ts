@@ -79,6 +79,45 @@ serve(async (req) => {
       throw new Error('Contact data (name, frequency, last_contact, next_contact, reminder_interval) is required');
     }
 
+    // Check for duplicate contacts
+    console.log(`[add-contact] Checking for duplicate contacts for user ${user.id}`);
+    
+    // Build query to check for duplicates
+    let duplicateQuery = supabaseClient
+      .from('contacts')
+      .select('id, name, phone')
+      .eq('user_id', user.id);
+    
+    // Check by name (case-insensitive)
+    duplicateQuery = duplicateQuery.ilike('name', payload.name.trim());
+    
+    // If phone number provided, also check by phone
+    if (payload.phone) {
+      // Normalize phone number (remove spaces, dashes, parentheses)
+      const normalizedPhone = payload.phone.replace(/[\s\-\(\)]/g, '');
+      duplicateQuery = duplicateQuery.or(`phone.eq.${payload.phone},phone.eq.${normalizedPhone}`);
+    }
+    
+    const { data: duplicates, error: duplicateError } = await duplicateQuery;
+    
+    if (duplicateError) {
+      console.error('Error checking for duplicates:', duplicateError);
+      // Continue anyway - better to allow adding than to fail
+    } else if (duplicates && duplicates.length > 0) {
+      console.log(`[add-contact] Found duplicate contact(s):`, duplicates);
+      const duplicate = duplicates[0];
+      return new Response(
+        JSON.stringify({
+          error: 'DuplicateContactError',
+          details: `A contact named "${duplicate.name}" already exists. Please use a different name or update the existing contact.`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Log the full payload being sent to the RPC
     console.log('DEBUG_RPC_PARAMS (sending to insert_contact)', {
       p_user_id: user.id,

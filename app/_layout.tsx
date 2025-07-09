@@ -8,6 +8,7 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
 import { checkEnvironmentVariables } from '@/lib/envCheck';
+import { PaymentService } from '@/services/payment';
 import {
   Platform,
   Modal,
@@ -78,6 +79,28 @@ function RootLayoutNav({
   // Configure notification handler once
   useEffect(() => {
     configureNotificationHandler();
+  }, []);
+
+  // Initialize PaymentService for IAP
+  useEffect(() => {
+    const initializePayment = async () => {
+      try {
+        await PaymentService.initialize();
+        console.log('Payment service initialized');
+      } catch (error) {
+        console.error('Error initializing payment service:', error);
+        captureException(error);
+      }
+    };
+
+    initializePayment();
+
+    // Clean up on unmount
+    return () => {
+      PaymentService.endConnection().catch((err) => {
+        console.error('Error ending payment connection:', err);
+      });
+    };
   }, []);
 
   // Get user session

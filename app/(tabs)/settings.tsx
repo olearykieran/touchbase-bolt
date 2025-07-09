@@ -21,6 +21,7 @@ import {
   CreditCard,
   Ban,
   RefreshCw,
+  Download,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import * as Notifications from 'expo-notifications';
@@ -34,6 +35,10 @@ import {
 } from '../../lib/notificationUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
+import { PaymentService } from '@/services/payment';
+import { isSimulator } from '@/services/payment';
+import PaywallModal from '@/components/PaywallModal';
+import { IAPDebugPanel } from '@/components/IAPDebugPanel';
 
 // Configure notification handler
 // Notifications.setNotificationHandler({
@@ -54,6 +59,9 @@ export default function SettingsScreen() {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // To force re-fetch
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -84,6 +92,9 @@ export default function SettingsScreen() {
 
     // Fetch subscription status on mount
     fetchSubscriptionStatus();
+    
+    // Fetch user email
+    fetchUserEmail();
   }, []);
 
   useEffect(() => {
@@ -220,6 +231,7 @@ export default function SettingsScreen() {
         trigger: {
           seconds: 5,
           repeats: false,
+          type: 'timeInterval' as const,
         },
       });
 
@@ -234,6 +246,17 @@ export default function SettingsScreen() {
         'Error',
         'Could not send test notifications. Check console for details.'
       );
+    }
+  };
+
+  const fetchUserEmail = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    } catch (error) {
+      console.error('Error fetching user email:', error);
     }
   };
 
@@ -323,36 +346,18 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               setIsLoading(true);
-
-              const {
-                data: { session },
-              } = await supabase.auth.getSession();
-              if (!session) throw new Error('Please sign in again');
-
-              const response = await fetch(
-                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/cancel-subscription`,
-                {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                  },
-                }
-              );
-
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(
-                  errorData.error || 'Failed to cancel subscription'
+              
+              // Use our platform-specific payment service
+              const success = await PaymentService.cancelSubscription();
+              
+              if (success && Platform.OS === 'android') {
+                Alert.alert(
+                  'Success',
+                  'Your subscription has been canceled. You will still have access until the end of your current billing period.'
                 );
               }
-
-              Alert.alert(
-                'Success',
-                'Your subscription has been canceled. You will still have access until the end of your current billing period.'
-              );
-
-              // Refresh the subscription status
+              
+              // Refresh the subscription status regardless of platform
               fetchSubscriptionStatus();
             } catch (err: any) {
               Alert.alert(
@@ -368,11 +373,82 @@ export default function SettingsScreen() {
     );
   };
 
+  // Handle restore purchases (iOS only)
+  const handleRestorePurchases = async () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Not Available', 'Restore purchases is only available on iOS devices');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const success = await PaymentService.restorePurchases();
+      
+      if (success) {
+        Alert.alert('Success', 'Your purchases have been restored.');
+        fetchSubscriptionStatus();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
+      console.error('Restore purchases error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle opening iTunes subscription management
+  const handleManageSubscription = async () => {
+    if (Platform.OS === 'ios') {
+      // Check if we're in a simulator
+      if (isSimulator()) {
+        Alert.alert(
+          'Test Mode',
+          'Running in simulator. iTunes subscription management is not available in the simulator.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // In a real device, try to open the iTunes URL
+      try {
+        await Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
+      } catch (error) {
+        console.error('Error opening subscription URL:', error);
+        Alert.alert(
+          'Subscription Management',
+          'Please open Settings > iTunes & App Store > Your Apple ID > Subscriptions to manage your subscription.',
+          [{ text: 'OK' }]
+        );
+      }
+    } else {
+      Alert.alert('Not Available', 'This option is only available on iOS devices');
+    }
+  };
+
   return (
+  <View style={{ flex: 1 }}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingBottom: 40, paddingTop: headerHeight }}
     >
+      {userEmail && (
+        <View style={[styles.section, { 
+          backgroundColor: colors.card,
+          borderWidth: 1,
+          borderColor: colors.border,
+          marginBottom: 8,
+        }]}>
+          <View style={styles.setting}>
+            <ThemedText style={[styles.settingText, { fontSize: 14, color: colors.secondaryText }]}>
+              Signed in as
+            </ThemedText>
+            <ThemedText style={[styles.settingValue, { fontSize: 16, fontWeight: '500', marginTop: 4 }]}>
+              {userEmail}
+            </ThemedText>
+          </View>
+        </View>
+      )}
+      
       <View style={[styles.section, { 
         backgroundColor: colors.card,
         borderWidth: 1,
@@ -543,6 +619,34 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {subscriptionStatus === 'Free' && (
+          <TouchableOpacity
+            style={[{
+              backgroundColor: colors.accent,
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              borderRadius: 12,
+              marginTop: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }, { opacity: isLoading ? 0.5 : 1 }]}
+            onPress={() => setShowPaywall(true)}
+            disabled={isLoading}
+          >
+            <CreditCard size={20} color="white" />
+            <ThemedText style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              Upgrade to Premium
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+
         {subscriptionEnd && subscriptionStatus !== 'Free' && (
           <View style={styles.setting}>
             <View style={styles.settingInfo}>
@@ -572,6 +676,35 @@ export default function SettingsScreen() {
               <ThemedText style={styles.cancelText}>Cancel Subscription</ThemedText>
             </TouchableOpacity>
           )}
+
+        {/* iOS-specific subscription management options */}
+        {Platform.OS === 'ios' && (
+          <>
+            <TouchableOpacity
+              style={[
+                styles.subscriptionOption,
+                { opacity: isLoading ? 0.5 : 1 },
+              ]}
+              onPress={handleRestorePurchases}
+              disabled={isLoading}
+            >
+              <Download size={24} color={colors.accent} />
+              <ThemedText style={styles.optionText}>Restore Purchases</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.subscriptionOption,
+                { opacity: isLoading ? 0.5 : 1 },
+              ]}
+              onPress={handleManageSubscription}
+              disabled={isLoading}
+            >
+              <CreditCard size={24} color={colors.accent} />
+              <ThemedText style={styles.optionText}>Manage Subscription</ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <View style={[styles.section, { 
@@ -607,7 +740,55 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* IAP Debug Button - Always visible for now to debug TestFlight */}
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#FF6B6B',
+            borderRadius: 8,
+            padding: 16,
+            alignItems: 'center',
+            marginTop: 16,
+          }}
+          onPress={() => setShowDebugPanel(!showDebugPanel)}
+        >
+          <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+            {showDebugPanel ? 'Hide' : 'Show'} IAP Debug Info
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      {/* IAP Debug Panel */}
+      <IAPDebugPanel visible={showDebugPanel} />
     </ScrollView>
+    
+    <PaywallModal
+      visible={showPaywall}
+      onClose={() => setShowPaywall(false)}
+      onUpgrade={async (plan: 'monthly' | 'yearly') => {
+        try {
+          const success = await PaymentService.purchaseSubscription(plan);
+          
+          if (success) {
+            console.log(`${Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'} purchase initiated successfully`);
+            // Refresh subscription status after successful purchase
+            setRefreshTrigger((prev) => prev + 1);
+          }
+        } catch (err: any) {
+          Alert.alert('Error', err.message);
+          console.error('Subscription Error:', err);
+        } finally {
+          setShowPaywall(false);
+        }
+      }}
+      errorType={'contacts'}
+    />
+  </View>
   );
 }
 
@@ -685,6 +866,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
     color: '#64403E',
+    fontWeight: '600',
+  },
+  subscriptionOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  optionText: {
+    fontSize: 16,
+    marginLeft: 12,
     fontWeight: '600',
   },
   version: {

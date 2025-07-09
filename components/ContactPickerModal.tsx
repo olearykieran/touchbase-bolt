@@ -61,10 +61,10 @@ export default function ContactPickerModal({
           contact.name?.toLowerCase().includes(query.toLowerCase())
         )
         .map((contact) => ({
-          id: contact.id,
+          id: contact.id || '',
           name: contact.name || 'No Name',
-          email: contact.emails?.[0]?.email,
-          phone: contact.phoneNumbers?.[0]?.number,
+          email: contact.emails?.[0]?.email || undefined,
+          phone: contact.phoneNumbers?.[0]?.number || undefined,
         }))
         .slice(0, 50); // Limit results for better performance
 

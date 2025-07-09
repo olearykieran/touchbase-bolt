@@ -2,7 +2,7 @@
   "expo": {
     "name": "KeepTouch",
     "slug": "bolt-expo-nativewind",
-    "version": "1.1.7",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "touchbasebolt",
@@ -22,12 +22,16 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
+      "buildNumber": "15",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
-        "NSContactsUsageDescription": "Allow Keep Connect to access your contacts.",
+        "NSContactsUsageDescription": "KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.holygrailstudio.boltexponativewind"
+      "bundleIdentifier": "com.holygrailstudio.boltexponativewind",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -52,7 +56,7 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "Allow Keep Connect to access your contacts."
+          "contactsPermission": "KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers."
         }
       ],
       "expo-notifications",
@@ -64,7 +68,8 @@
           "organization": "hgs-ae"
         }
       ],
-      "expo-updates"
+      "expo-updates",
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true
@@ -78,6 +83,8 @@
       },
       "stripeMonthlyPriceId": "price_1RGnMkBaBfFAgOwMe1ABL45G",
       "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA",
+      "iosMonthlyProductId": "com.holygrailstudio.boltexponativewind.monthlysub",
+      "iosYearlyProductId": "com.holygrailstudio.boltexponativewind.yearlysub",
       "SENTRY_DSN": "https://7aeca10e48ef9612852cb25fc090a711@o4509243376795648.ingest.us.sentry.io/4509243377582080"
     },
     "newArchEnabled": false

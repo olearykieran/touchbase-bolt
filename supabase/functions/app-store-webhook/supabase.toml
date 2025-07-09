@@ -1,0 +1,2 @@
+[functions.app-store-webhook]
+verify_jwt = false

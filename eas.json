@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 5.9.1",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -17,6 +17,10 @@
     "production": {
       "ios": {
         "buildArtifactPaths": ["ios/build/*"]
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nocqcvnmmoadxhhjgnys.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vY3Fjdm5tbW9hZHhoaGpnbnlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2NDc5OTEsImV4cCI6MjA2MDIyMzk5MX0.Fs86_6lOeWqpYGAeTSGRf8HnmBtPpuKXWtZVf3ENY90"
       }
     },
     "debug-production": {
@@ -37,6 +41,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "preview": {
+      "ios": {
+        "appleId": "kieran92393@icloud.com",
+        "ascAppId": "6474334184",
+        "appleTeamId": "JM6RWFSRJ9"
+      }
+    }
   }
 }

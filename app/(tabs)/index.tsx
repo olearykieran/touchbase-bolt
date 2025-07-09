@@ -49,6 +49,7 @@ import PaywallModal from '../../components/PaywallModal';
 import { AppState } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
+import { PaymentService } from '@/services/payment';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -102,17 +103,25 @@ const CustomPromptModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <ThemedText style={styles.modalTitle}>Custom Message</ThemedText>
           <ThemedText style={styles.modalSubtitle}>
             Enter a brief prompt for your message:
           </ThemedText>
           <TextInput
-            style={styles.promptInput}
+            style={[
+              styles.promptInput,
+              { 
+                backgroundColor: colors.secondaryBackground,
+                borderColor: colors.border,
+                color: colors.text,
+              }
+            ]}
             value={prompt}
             onChangeText={onChangePrompt}
             maxLength={50}
             placeholder="Type your prompt here..."
+            placeholderTextColor={colors.mutedText}
             autoFocus
           />
           <ThemedText style={styles.characterCount}>
@@ -186,6 +195,7 @@ function ContactsScreen(props: any) {
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
+  const [showPaywall, setShowPaywall] = useState(false);
   const { colors, colorScheme } = useTheme();
   const headerHeight = useHeaderHeight();
   const appStateRef = useRef(AppState.currentState);
@@ -220,6 +230,26 @@ function ContactsScreen(props: any) {
         clearError();
       }
 
+      // Fix any broken streaks on app load
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Fixing streaks on app load...');
+          const { data, error } = await supabase.functions.invoke('fix-streaks');
+          if (error) {
+            console.error('Error fixing streaks:', error);
+          } else {
+            console.log('Streaks fixed:', data);
+            // If streaks were fixed, refresh contacts to show updated streaks
+            if (data?.lateContacts > 0) {
+              console.log('Refreshing contacts after streak fix...');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fix streaks:', err);
+      }
+
       // Force refresh contacts to ensure UI is up to date
       await fetchContacts();
     };
@@ -249,8 +279,13 @@ function ContactsScreen(props: any) {
               console.log(
                 'App active refresh: User has active subscription, clearing errors'
               );
-              setError(null);
-              clearError();
+              // Only clear non-paywall errors
+              if (error !== MESSAGE_LIMIT_ERROR) {
+                setError(null);
+                clearError();
+              }
+              // Clear paywall if user is now subscribed
+              setShowPaywall(false);
             }
           }
           isRefreshingRef.current = false;
@@ -358,6 +393,7 @@ function ContactsScreen(props: any) {
       // HTTP 402 -> message limit
       if (response.status === 402) {
         setError(MESSAGE_LIMIT_ERROR);
+        setShowPaywall(true);
         return;
       }
       if (!response.ok) {
@@ -608,7 +644,13 @@ function ContactsScreen(props: any) {
 
     return (
       <TouchableOpacity
-        style={[styles.contactCard, { backgroundColor: colors.card }]}
+        style={[
+          styles.contactCard, 
+          { 
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          }
+        ]}
       >
         <View style={styles.contactInfo}>
           <View style={styles.contactHeader}>
@@ -682,7 +724,10 @@ function ContactsScreen(props: any) {
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
-                      { backgroundColor: colors.background },
+                      { 
+                        backgroundColor: colors.secondaryBackground,
+                        borderColor: colors.border,
+                      },
                     ]}
                     onPress={() => handlePhonePress(item.phone)}
                   >
@@ -693,7 +738,10 @@ function ContactsScreen(props: any) {
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
-                      { backgroundColor: colors.background },
+                      { 
+                        backgroundColor: colors.secondaryBackground,
+                        borderColor: colors.border,
+                      },
                     ]}
                     onPress={() => handleEmailPress(item.email)}
                   >
@@ -831,44 +879,22 @@ function ContactsScreen(props: any) {
 
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) throw new Error('Please sign in again');
-      const extra = Constants.expoConfig?.extra as Record<string, string>;
-      const priceId =
-        plan === 'monthly'
-          ? extra.stripeMonthlyPriceId
-          : extra.stripeYearlyPriceId;
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ priceId, userId: session.user.id }),
-        }
-      );
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Checkout session failed');
+      // Use our platform-specific PaymentService instead of direct Stripe implementation
+      const success = await PaymentService.purchaseSubscription(plan);
+      
+      if (success) {
+        // Set flag to refresh profile on next app focus - this is already handled in PaymentService
+        console.log(`${Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'} purchase initiated successfully`);
       }
-      const { url } = await response.json();
-      await Linking.openURL(url);
-
-      // Set a flag that we need to refresh profile on next app focus
-      await AsyncStorage.setItem('need_profile_refresh', 'true');
     } catch (err: any) {
       Alert.alert('Error', err.message);
-      console.error('Checkout Error:', err);
+      console.error('Subscription Error:', err);
     }
   };
 
   const handleClosePaywall = () => {
     setError(null);
+    setShowPaywall(false);
   };
 
   const handleNextOnboarding = () => {
@@ -1030,7 +1056,7 @@ function ContactsScreen(props: any) {
         onChangePrompt={setTempPrompt}
       />
       <PaywallModal
-        visible={error === MESSAGE_LIMIT_ERROR}
+        visible={showPaywall}
         errorType={'messages'}
         onClose={handleClosePaywall}
         onUpgrade={handleUpgrade}
@@ -1057,15 +1083,15 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   contactCard: {
-    backgroundColor: 'white',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
   },
   contactInfo: {
     flex: 1,
@@ -1090,7 +1116,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 4,
   },
   name: {
@@ -1118,23 +1143,29 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F2F2F7',
+    padding: 10,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    gap: 8,
     flex: 1,
-    backgroundColor: '#007AFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   messageButtonText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 15,
   },
   messageButtonGenerating: {
     opacity: 0.7,

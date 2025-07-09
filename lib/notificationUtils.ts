@@ -83,7 +83,7 @@ export function configureNotificationHandler() {
     {
       showTitle: true,
       showSubtitle: true,
-      showPreview: true,
+      // showPreview: true, // Not a valid property in current expo-notifications
       allowInCarPlay: true,
       allowAnnouncement: true,
     }
@@ -197,10 +197,7 @@ export async function scheduleNotificationsForContacts() {
                 body: `It's time to reach out to ${contact.name} soon!`,
                 data: { contactId: contact.id },
               },
-              trigger: {
-                type: 'date',
-                date: triggerTime,
-              },
+              trigger: triggerTime,
             });
           } else {
             console.log(
@@ -238,10 +235,7 @@ export async function scheduleNotificationsForContacts() {
               body: `Reach out and wish them a happy birthday!`,
               data: { contactId: contact.id, birthday: true },
             },
-            trigger: {
-              type: 'date',
-              date: birthdayTriggerTime,
-            },
+            trigger: birthdayTriggerTime,
           });
         }
       }
@@ -270,6 +264,8 @@ export async function sendTestNotification() {
 
     const trigger: NotificationTriggerInput = {
       seconds: 5,
+      type: 'timeInterval' as const,
+      repeats: false,
     };
 
     await Notifications.scheduleNotificationAsync({
@@ -290,7 +286,7 @@ export async function scheduleNotification(contact: Contact) {
       data: { contactId: contact.id },
     },
     trigger: {
-      type: 'daily',
+      // type: 'daily',
       hour: 9,
       minute: 0,
       repeats: true,
@@ -306,7 +302,7 @@ export async function scheduleNotificationForContact(contact: Contact) {
       data: { contactId: contact.id },
     },
     trigger: {
-      type: 'daily',
+      // type: 'daily',
       hour: 9,
       minute: 0,
       repeats: true,
@@ -322,7 +318,7 @@ export async function scheduleNotificationForNewContact(contact: Contact) {
       data: { contactId: contact.id },
     },
     trigger: {
-      type: 'daily',
+      // type: 'daily',
       hour: 9,
       minute: 0,
       repeats: true,
@@ -352,14 +348,8 @@ export async function testDirectNotification() {
     content: {
       title: 'Direct Test',
       body: 'This is a direct notification test',
-      sound: 'default',
+      sound: 'default' as const,
       badge: 1,
-      ios: {
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-        sticky: false,
-        categoryIdentifier: 'default',
-      },
     },
   });
 }

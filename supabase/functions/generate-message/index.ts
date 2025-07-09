@@ -1,12 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
+// For Deno in Supabase Edge Functions, this import will work at runtime despite TypeScript errors
 import OpenAI from 'npm:openai@4.28.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-};
 
 interface MessageRequest {
   contact: {
@@ -18,6 +13,12 @@ interface MessageRequest {
   messageType?: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday' | 'joke' | 'fact';
   customPrompt?: string;
 }
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
+};
 
 const getSystemPrompt = (messageType: string) => {
   switch (messageType) {
@@ -134,88 +135,104 @@ Guidelines:
   }
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Create a Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    // Create Supabase Admin client for elevated privileges (bypasses RLS)
-    const supabaseAdminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
-        auth: {
-          persistSession: false, // Avoid storing session for admin client
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
         },
       }
     );
 
-    // Get the Authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Authentication required');
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      throw new Error('No authorization header');
     }
 
-    // Get the JWT token
-    const token = authHeader.replace('Bearer ', '');
-
-    // Verify the user is authenticated
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser(token);
-    if (authError || !user) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !user) {
       throw new Error('Authentication failed');
     }
 
-    // Fetch user profile for quota enforcement (use admin client)
+    console.log('Request by user:', user.id);
+
+    const supabaseAdminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { data: profile, error: profileError } = await supabaseAdminClient
       .from('profiles')
-      .select('*')
+      .select('subscription_status, subscription_end, weekly_message_count, last_message_reset')
       .eq('id', user.id)
       .single();
-    if (profileError || !profile) {
-      throw new Error('User profile not found');
+
+    if (profileError) {
+      console.error('Failed to fetch user profile:', profileError);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to get user profile',
+          details: profileError.message
+        }),
+        { status: 400 }
+      );
     }
 
-    // Quota enforcement logic
-    const isFreeTier = profile.subscription_status === 'free';
-    let { weekly_message_count, last_message_reset } = profile;
+    console.log('User profile:', profile);
+    const isFreeTier = !profile.subscription_status || profile.subscription_status === 'free';
     const now = new Date();
-    let needsReset = false;
-    if (!last_message_reset) {
-      needsReset = true;
-    } else {
-      const lastReset = new Date(last_message_reset);
-      // If more than 7 days since last reset, reset count
-      if (now.getTime() - lastReset.getTime() >= 7 * 24 * 60 * 60 * 1000) {
-        needsReset = true;
-      }
-    }
+
+    console.log('Complete profile data:', profile);
+    console.log('Is free tier?', isFreeTier);
+    console.log('Current weekly message count:', profile.weekly_message_count);
+
+    let weekly_message_count = profile.weekly_message_count || 0;
+
     if (isFreeTier) {
-      if (needsReset) {
-        // Reset weekly_message_count and last_message_reset (use admin client)
-        const { error: resetError } = await supabaseAdminClient
+      if (profile.last_message_reset) {
+        const lastReset = new Date(profile.last_message_reset);
+        const daysSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24));
+
+        console.log('Days since last message reset:', daysSinceReset);
+
+        if (daysSinceReset >= 7) {
+          console.log('Resetting weekly message count (been 7+ days)');
+          const { error: resetError } = await supabaseAdminClient
+            .from('profiles')
+            .update({
+              weekly_message_count: 0,
+              last_message_reset: now.toISOString(),
+            })
+            .eq('id', user.id);
+          if (resetError) {
+            console.error('Failed to reset weekly message count:', resetError);
+            throw new Error('Failed to reset weekly message count');
+          }
+          weekly_message_count = 0;
+        }
+      } else {
+        console.log('Initializing last_message_reset');
+        const { error: initError } = await supabaseAdminClient
           .from('profiles')
           .update({
-            weekly_message_count: 0,
             last_message_reset: now.toISOString(),
           })
           .eq('id', user.id);
-        if (resetError) {
-          throw new Error('Failed to reset weekly message count');
+        if (initError) {
+          console.error('Failed to initialize last_message_reset:', initError);
         }
-        weekly_message_count = 0;
       }
+
+      console.log('Checking message quota. Current count:', weekly_message_count);
       if (weekly_message_count >= 3) {
-        // Quota exceeded
+        console.log('Free tier message quota exceeded');
         return new Response(
           JSON.stringify({
             error: 'PaymentRequiredError',
@@ -229,7 +246,6 @@ serve(async (req) => {
       }
     }
 
-    // Get the request body
     const requestBody = await req.json();
     console.log('Request body:', requestBody);
 
@@ -249,14 +265,17 @@ serve(async (req) => {
       throw new Error('Custom prompt is required for custom messages');
     }
 
-    // Check if we have an OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    console.log('OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key is not configured');
+    // Get OpenAI API key
+    const openAiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAiKey) {
+      console.error('OPENAI_API_KEY is not set');
+      throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+    // Note: In Supabase Edge Functions, this works at runtime despite TypeScript errors
+    const openai = new OpenAI({
+      apiKey: openAiKey,
+    });
 
     const systemPrompt = getSystemPrompt(messageType);
     const userPrompt = getPrompt(
@@ -272,32 +291,39 @@ serve(async (req) => {
       userPrompt: userPrompt.substring(0, 50) + '...',
     });
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1-nano',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-      max_tokens: messageType === 'gratitude' ? 500 : 250,
-      temperature: messageType === 'custom' ? 0.8 : 0.7,
-      presence_penalty: 0.6,
-      frequency_penalty: 0.6,
-    });
+    let completionResponse;
+    try {
+      completionResponse = await openai.chat.completions.create({
+        model: 'gpt-4.1-nano',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+        max_tokens: messageType === 'gratitude' ? 500 : 250,
+        temperature: messageType === 'custom' ? 0.8 : 0.7,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.6,
+      });
+    } catch (error) {
+      const err = error as Error;
+      console.error('OpenAI API Error:', err.message);
+      return new Response(JSON.stringify({ error: 'Failed to generate message', details: err.message }), { status: 500 });
+    }
 
     console.log('OpenAI Response:', {
       messageType,
       systemPrompt,
       userPrompt,
-      response: completion.choices[0].message?.content,
+      response: completionResponse.choices[0].message?.content,
     });
 
-    const message = completion.choices[0].message?.content;
+    const message = completionResponse.choices[0].message?.content;
     if (!message) {
       throw new Error('No message was generated');
     }
@@ -307,14 +333,19 @@ serve(async (req) => {
       messagePreview: message.substring(0, 50) + '...',
     });
 
-    // On success, increment weekly_message_count for free tier (use admin client)
     if (isFreeTier) {
-      const { error: incError } = await supabaseAdminClient
-        .from('profiles')
-        .update({ weekly_message_count: weekly_message_count + 1 })
-        .eq('id', user.id);
-      if (incError) {
-        console.error('Failed to increment weekly_message_count:', incError);
+      console.log('Incrementing weekly message count from', weekly_message_count, 'to', weekly_message_count + 1);
+      try {
+        const { error: updateError } = await supabaseAdminClient
+          .from('profiles')
+          .update({ weekly_message_count: weekly_message_count + 1 })
+          .eq('id', user.id);
+        if (updateError) {
+          console.error('Failed to increment weekly_message_count:', updateError);
+        }
+      } catch (error) {
+        const err = error as Error;
+        console.error('Exception updating weekly message count:', err.message);
       }
     }
 
@@ -322,30 +353,26 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.split('\n')[0],
-    });
-
-    let errorMessage = 'Failed to generate message';
-    if (error.message.includes('API key')) {
-      errorMessage = 'Server configuration error';
-    } else if (error.message.includes('Authentication')) {
-      errorMessage = 'Please sign in again';
-    } else if (error.message.includes('model')) {
-      errorMessage = 'Model not available. Please check your OpenAI access.';
+    const err = error as Error;
+    console.error('Unexpected error:', err.message);
+    
+    let statusCode = 500;
+    let errorMessage = 'An unexpected error occurred';
+    
+    if (err.message?.includes('quota') || err.message?.includes('rate limit')) {
+      statusCode = 429;
+      errorMessage = 'Rate limit exceeded. Please try again later.';
+    } else if (err.message?.includes('authentication') || err.message?.includes('key')) {
+      statusCode = 401;
+      errorMessage = 'Authentication error with AI provider.';
     }
-
+    
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: errorMessage,
-        details: error.message,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        details: err.message 
+      }), 
+      { status: statusCode }
     );
   }
 });

@@ -25,17 +25,17 @@ const lightColors = {
 };
 
 const darkColors = {
-  background: '#000',
-  card: '#10100e',
-  secondaryBackground: '#1a1a1a',
-  text: '#FFFFE3',
-  secondaryText: '#FFFFE3',
-  mutedText: '#a1a1aa',
-  accent: '#4b5563',
-  accentHover: '#a3a3a3',
-  error: '#64403E',
-  border: '#333',
-  borderDark: '#444',
+  background: '#0a0a0a', // Softer black with slight warmth
+  card: '#161616', // Elevated surface
+  secondaryBackground: '#1f1f1f', // Secondary elevated surface
+  text: '#f5f5f5', // Bright but not harsh white
+  secondaryText: '#d1d1d1', // Readable gray
+  mutedText: '#8b8b8b', // Muted but visible
+  accent: '#71717a', // Elegant zinc gray accent
+  accentHover: '#a1a1aa', // Lighter hover state
+  error: '#ef4444', // Standard red error
+  border: '#2a2a2a', // Subtle borders
+  borderDark: '#3a3a3a', // Slightly darker border
   white: '#ffffff',
 };
 

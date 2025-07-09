@@ -12,40 +12,42 @@ import {
   Alert,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
-import { useState } from 'react';
-import { useContactStore } from '@/lib/store';
-import { router } from 'expo-router';
-import { UserPlus, Users } from 'lucide-react-native';
-import ContactPickerModal from '@/components/ContactPickerModal';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import React from 'react';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../components/ThemeProvider';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PaywallModal from '../../components/PaywallModal';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
+import { PaymentService } from '@/services/payment';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React from 'react';
+import { useContactStore } from '@/lib/store';
+import { router } from 'expo-router';
+import { UserPlus, Users } from 'lucide-react-native';
+import ContactPickerModal from '@/components/ContactPickerModal';
+import Notifications from 'expo-notifications';
 
 export default function AddContactScreen() {
   const addContact = useContactStore((state) => state.addContact);
   const loading = useContactStore((state) => state.loading);
   const error = useContactStore((state) => state.error);
   const clearError = useContactStore((state) => state.clearError);
-  const [showContactPicker, setShowContactPicker] = useState(false);
-  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
+  const [showContactPicker, setShowContactPicker] = React.useState(false);
+  const [showBirthdayPicker, setShowBirthdayPicker] = React.useState(false);
   const [showFirstContactDatePicker, setShowFirstContactDatePicker] =
-    useState(false);
-  const [contactPermissionStatus, setContactPermissionStatus] = useState<
+    React.useState(false);
+  const [contactPermissionStatus, setContactPermissionStatus] = React.useState<
     'undetermined' | 'granted' | 'denied'
   >('undetermined');
   const [showContactPermissionPrompt, setShowContactPermissionPrompt] =
-    useState(false);
+    React.useState(false);
   const { colors, colorScheme } = useTheme();
   const headerHeight = useHeaderHeight();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: '',
     email: '',
     phone: '',
@@ -73,8 +75,12 @@ export default function AddContactScreen() {
     console.log('Submitting contact data:', submitData);
 
     await addContact(submitData);
-    if (!error) {
+    // Don't navigate if there's an error - let paywall show
+    const currentError = useContactStore.getState().error;
+    if (!currentError) {
       router.push('/(tabs)/' as any);
+    } else {
+      console.log('[AddContactScreen] Error after addContact:', currentError);
     }
   };
 
@@ -112,100 +118,120 @@ export default function AddContactScreen() {
   };
 
   // Onboarding state
-  const [showAddOnboarding, setShowAddOnboarding] = useState(false);
-  const [addOnboardingStep, setAddOnboardingStep] = useState(0); // 0: none, 1: contacts btn, 2: freq, 3: reminder
+  const [showAddOnboarding, setShowAddOnboarding] = React.useState(false);
+  const [addOnboardingStep, setAddOnboardingStep] = React.useState(0); // 0: none, 1: contacts btn, 2: freq, 3: reminder
   const addOnboardingKey = 'add_contact_onboarding_v1';
+
+  // Add state for tooltip visibility explicitly to ensure tooltips can be turned off
+  const [tooltipVisible, setTooltipVisible] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
       const shown = await AsyncStorage.getItem(addOnboardingKey);
       if (!shown) {
-        setShowAddOnboarding(true);
-        setAddOnboardingStep(1);
+        setTimeout(() => {
+          setShowAddOnboarding(true);
+          setAddOnboardingStep(1);
+          setTooltipVisible(true);
+        }, 1000);
       }
     })();
   }, []);
 
-  const handleNextAddOnboarding = async () => {
-    if (addOnboardingStep === 1) {
-      setAddOnboardingStep(2);
-    } else if (addOnboardingStep === 2) {
-      setAddOnboardingStep(3);
+  const handleNextAddOnboarding = () => {
+    if (addOnboardingStep < 3) {
+      setAddOnboardingStep(addOnboardingStep + 1);
+      setTooltipVisible(true);
     } else {
+      // Close all tooltips
       setShowAddOnboarding(false);
       setAddOnboardingStep(0);
-      await AsyncStorage.setItem(addOnboardingKey, 'true');
+      setTooltipVisible(false);
+      AsyncStorage.setItem(addOnboardingKey, 'true');
     }
   };
 
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [paywallType, setPaywallType] = useState<'contacts' | 'messages'>(
+  // Explicit handler for closing tooltips
+  const handleCloseTooltip = () => {
+    setTooltipVisible(false);
+  };
+
+  // Ensure tooltips are closed when navigating away
+  React.useEffect(() => {
+    return () => {
+      setTooltipVisible(false);
+      setShowAddOnboarding(false);
+    };
+  }, []);
+
+  const [showPaywall, setShowPaywall] = React.useState(false);
+  const [paywallType, setPaywallType] = React.useState<'contacts' | 'messages'>(
     'contacts'
   );
 
   // Error message constant for message limit
   const MESSAGE_LIMIT_ERROR =
     'Free tier limited to 3 AI messages per week. Subscribe to unlock more.';
+  const CONTACT_LIMIT_ERROR =
+    'Free tier limited to 3 contacts. Subscribe to unlock more.';
 
+  // Single useEffect to handle error states and paywall
   React.useEffect(() => {
-    console.log('[AddContactScreen] useEffect triggered with error:', error);
-    if (
-      error === 'Free tier limited to 3 contacts. Subscribe to unlock more.'
-    ) {
-      setShowPaywall(true);
-      setPaywallType('contacts');
-    } else if (error === MESSAGE_LIMIT_ERROR) {
-      setShowPaywall(true);
-      setPaywallType('messages');
-    } else {
-      setShowPaywall(false);
+    console.log('[AddContactScreen] Error state changed:', error);
+    if (error) {
+      // Check for contact limit error (exact match or contains)
+      if (error === CONTACT_LIMIT_ERROR || error.toLowerCase().includes('free tier limited to 3 contacts')) {
+        console.log('[AddContactScreen] Showing contact limit paywall');
+        setShowPaywall(true);
+        setPaywallType('contacts');
+      } 
+      // Check for message limit error
+      else if (error === MESSAGE_LIMIT_ERROR) {
+        console.log('[AddContactScreen] Showing message limit paywall');
+        setShowPaywall(true);
+        setPaywallType('messages');
+      }
+      // Check for generic payment required errors
+      else if (error.toLowerCase().includes('payment') || error.toLowerCase().includes('subscribe')) {
+        console.log('[AddContactScreen] Showing generic paywall');
+        setShowPaywall(true);
+        setPaywallType('contacts');
+      }
     }
   }, [error]);
 
   const handleClosePaywall = () => {
     console.log(
-      '[AddContactScreen] handleClosePaywall called, clearing error.'
+      '[AddContactScreen] handleClosePaywall called, closing paywall.'
     );
-    clearError(); // Clear the error in the store
-    // Let the useEffect handle hiding the modal when the error becomes null
-    // setShowPaywall(false);
+    setShowPaywall(false);
+    // Clear error after a delay to prevent immediate re-triggering
+    setTimeout(() => {
+      clearError();
+    }, 100);
   };
 
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) throw new Error('Please sign in again');
-      const extra = Constants.expoConfig?.extra as Record<string, string>;
-      const priceId =
-        plan === 'monthly'
-          ? extra.stripeMonthlyPriceId
-          : extra.stripeYearlyPriceId;
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ priceId, userId: session.user.id }),
-        }
-      );
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Checkout session failed');
+      // Use our platform-specific PaymentService instead of direct Stripe implementation
+      const success = await PaymentService.purchaseSubscription(plan);
+
+      if (success) {
+        console.log(
+          `${
+            Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'
+          } purchase initiated successfully`
+        );
       }
-      const { url } = await response.json();
-      await Linking.openURL(url);
     } catch (err: any) {
       Alert.alert('Error', err.message);
-      console.error('Checkout Error:', err);
+      console.error('Subscription Error:', err);
     } finally {
-      clearError();
+      // Don't clear error immediately to allow paywall to show
       setShowPaywall(false);
+      setTimeout(() => {
+        clearError();
+      }, 100);
     }
   };
 
@@ -244,34 +270,63 @@ export default function AddContactScreen() {
         {Platform.OS !== 'web' &&
           (showAddOnboarding && addOnboardingStep === 1 ? (
             <Tooltip
-              isVisible={true}
+              isVisible={
+                tooltipVisible && showAddOnboarding && addOnboardingStep === 1
+              }
               content={
-                <ThemedText style={{ color: '#000000' }}>
-                  You can add contacts from your phone by clicking the "Add from
-                  Contacts" button.
-                </ThemedText>
+                <View style={{ padding: 8 }}>
+                  <ThemedText
+                    style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
+                  >
+                    Use this to add from your contacts
+                  </ThemedText>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#fff',
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 8,
+                      marginTop: 8,
+                      alignSelf: 'flex-end',
+                    }}
+                    onPress={handleNextAddOnboarding}
+                  >
+                    <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
+                      Next
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               }
               placement="bottom"
-              onClose={handleNextAddOnboarding}
-              showChildInTooltip={false}
-              useInteractionManager={true}
+              onClose={handleCloseTooltip}
+              contentStyle={{ backgroundColor: '#007AFF' }}
+              arrowStyle={{ borderTopColor: '#007AFF' }}
+              backgroundColor="rgba(0,0,0,0.4)"
             >
               <TouchableOpacity
                 style={[
                   styles.contactPickerButton,
                   {
-                    backgroundColor: colors.white,
-                    borderWidth: 1,
+                    backgroundColor: colors.card,
                     borderColor: colors.border,
                   },
                 ]}
-                onPress={() => setShowContactPicker(true)}
+                onPress={() => {
+                  if (contactPermissionStatus !== 'granted') {
+                    setShowContactPermissionPrompt(true);
+                  } else {
+                    setShowContactPicker(true);
+                  }
+                }}
               >
-                <Users size={24} color={colors.accent} />
+                <Users size={20} color={colors.accent} />
                 <ThemedText
-                  style={[styles.contactPickerText, { color: colors.accent }]}
+                  style={[
+                    styles.contactPickerText,
+                    { color: colors.accent, fontWeight: '600' },
+                  ]}
                 >
-                  Click to Add from Contacts
+                  Import from Contacts
                 </ThemedText>
               </TouchableOpacity>
             </Tooltip>
@@ -280,7 +335,7 @@ export default function AddContactScreen() {
               style={[
                 styles.contactPickerButton,
                 {
-                  backgroundColor: colors.white,
+                  backgroundColor: colors.secondaryBackground,
                   borderWidth: 1,
                   borderColor: colors.border,
                 },
@@ -303,14 +358,14 @@ export default function AddContactScreen() {
           style={[
             styles.input,
             {
-              backgroundColor: colors.white,
+              backgroundColor: colors.secondaryBackground,
               borderWidth: 1,
               borderColor: colors.border,
               color: colors.text,
             },
           ]}
           placeholder="Name"
-          placeholderTextColor="#A3A3A3"
+          placeholderTextColor={colors.mutedText}
           value={formData.name}
           onChangeText={(text) => setFormData({ ...formData, name: text })}
         />
@@ -322,14 +377,14 @@ export default function AddContactScreen() {
           style={[
             styles.input,
             {
-              backgroundColor: colors.white,
+              backgroundColor: colors.secondaryBackground,
               borderWidth: 1,
               borderColor: colors.border,
               color: colors.text,
             },
           ]}
           placeholder="Email"
-          placeholderTextColor="#A3A3A3"
+          placeholderTextColor={colors.mutedText}
           keyboardType="email-address"
           autoCapitalize="none"
           value={formData.email}
@@ -343,14 +398,14 @@ export default function AddContactScreen() {
           style={[
             styles.input,
             {
-              backgroundColor: colors.white,
+              backgroundColor: colors.secondaryBackground,
               borderWidth: 1,
               borderColor: colors.border,
               color: colors.text,
             },
           ]}
           placeholder="Phone"
-          placeholderTextColor="#A3A3A3"
+          placeholderTextColor={colors.mutedText}
           keyboardType="phone-pad"
           value={formData.phone}
           onChangeText={(text) => setFormData({ ...formData, phone: text })}
@@ -361,37 +416,73 @@ export default function AddContactScreen() {
         </ThemedText>
         {showAddOnboarding && addOnboardingStep === 2 ? (
           <Tooltip
-            isVisible={true}
-            content={
-              <ThemedText style={{ color: '#000000' }}>
-                You can choose how often you want to be reminded to reach out to
-                this person by selecting contact frequency.
-              </ThemedText>
+            isVisible={
+              tooltipVisible && showAddOnboarding && addOnboardingStep === 2
             }
-            placement="bottom"
-            onClose={handleNextAddOnboarding}
-            showChildInTooltip={false}
-            useInteractionManager={true}
+            content={
+              <View style={{ padding: 8 }}>
+                <ThemedText
+                  style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
+                >
+                  Choose how often to be in touch
+                </ThemedText>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#fff',
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    marginTop: 8,
+                    alignSelf: 'flex-end',
+                  }}
+                  onPress={handleNextAddOnboarding}
+                >
+                  <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
+                    Next
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            }
+            placement="top"
+            onClose={handleCloseTooltip}
+            contentStyle={{ backgroundColor: '#007AFF' }}
+            arrowStyle={{ borderTopColor: '#007AFF' }}
+            backgroundColor="rgba(0,0,0,0.4)"
           >
             <View style={styles.frequencyButtons}>
-              {frequencies.map((freq) => (
+              {frequencies.map((frequency) => (
                 <TouchableOpacity
-                  key={freq}
+                  key={frequency}
                   style={[
                     styles.frequencyButton,
-                    formData.frequency === freq && {
-                      backgroundColor: colors.accent,
+                    formData.frequency === frequency &&
+                      styles.frequencyButtonActive,
+                    {
+                      backgroundColor:
+                        formData.frequency === frequency
+                          ? colors.accent
+                          : colors.secondaryBackground,
                     },
                   ]}
-                  onPress={() => setFormData({ ...formData, frequency: freq })}
+                  onPress={() => {
+                    setFormData({ ...formData, frequency });
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
                 >
                   <ThemedText
                     style={[
                       styles.frequencyButtonText,
-                      formData.frequency === freq && { color: '#fff' },
+                      formData.frequency === frequency &&
+                        styles.frequencyButtonTextActive,
+                      {
+                        color:
+                          formData.frequency === frequency
+                            ? '#fff'
+                            : colors.mutedText,
+                      },
                     ]}
                   >
-                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                    {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
                   </ThemedText>
                 </TouchableOpacity>
               ))}
@@ -430,7 +521,7 @@ export default function AddContactScreen() {
           style={[
             styles.datePickerButton,
             {
-              backgroundColor: colors.white,
+              backgroundColor: colors.secondaryBackground,
               borderWidth: 1,
               borderColor: colors.border,
             },
@@ -453,23 +544,44 @@ export default function AddContactScreen() {
         </ThemedText>
         {showAddOnboarding && addOnboardingStep === 3 ? (
           <Tooltip
-            isVisible={true}
-            content={
-              <ThemedText style={{ color: '#000000' }}>
-                You can specify when you want to first be reminded to reach out
-                to this contact here.
-              </ThemedText>
+            isVisible={
+              tooltipVisible && showAddOnboarding && addOnboardingStep === 3
             }
-            placement="bottom"
-            onClose={handleNextAddOnboarding}
-            showChildInTooltip={false}
-            useInteractionManager={true}
+            content={
+              <View style={{ padding: 8 }}>
+                <ThemedText
+                  style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
+                >
+                  Use the button when you're ready
+                </ThemedText>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#fff',
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    marginTop: 8,
+                    alignSelf: 'flex-end',
+                  }}
+                  onPress={handleNextAddOnboarding}
+                >
+                  <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
+                    Got it!
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            }
+            placement="top"
+            onClose={handleCloseTooltip}
+            contentStyle={{ backgroundColor: '#007AFF' }}
+            arrowStyle={{ borderTopColor: '#007AFF' }}
+            backgroundColor="rgba(0,0,0,0.4)"
           >
             <TouchableOpacity
               style={[
                 styles.datePickerButton,
                 {
-                  backgroundColor: colors.white,
+                  backgroundColor: colors.secondaryBackground,
                   borderWidth: 1,
                   borderColor: colors.border,
                 },
@@ -488,7 +600,7 @@ export default function AddContactScreen() {
             style={[
               styles.datePickerButton,
               {
-                backgroundColor: colors.white,
+                backgroundColor: colors.secondaryBackground,
                 borderWidth: 1,
                 borderColor: colors.border,
               },

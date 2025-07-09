@@ -90,11 +90,12 @@ android {
 
     namespace 'com.holygrailstudio.boltexponativewind'
     defaultConfig {
+missingDimensionStrategy "store", "play"
         applicationId 'com.holygrailstudio.boltexponativewind'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.1.6"
+        versionName "1.2.1"
     }
     signingConfigs {
         debug {
