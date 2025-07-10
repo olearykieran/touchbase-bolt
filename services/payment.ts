@@ -34,11 +34,20 @@ export class PaymentService {
           return;
         }
         
+        console.log('[PaymentService] Initializing IAP connection...');
         await IAP.initConnection();
         this.isIAPAvailable = true;
-        console.log('Payment service initialized');
+        console.log('[PaymentService] IAP connection initialized successfully');
+        
+        // Pre-load products after initialization
+        console.log('[PaymentService] Loading products...');
+        const products = await IAP.getProducts({
+          skus: [IOS_MONTHLY_PRODUCT_ID, IOS_YEARLY_PRODUCT_ID],
+        });
+        console.log(`[PaymentService] Loaded ${products.length} products:`, products.map(p => p.productId));
       } catch (error) {
-        console.error('Error initializing IAP connection:', error);
+        console.error('[PaymentService] Error initializing IAP:', error);
+        this.isIAPAvailable = false;
         // Don't throw, just log the error
       }
     }

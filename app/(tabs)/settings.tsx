@@ -39,6 +39,7 @@ import { PaymentService } from '@/services/payment';
 import { isSimulator } from '@/services/payment';
 import PaywallModal from '@/components/PaywallModal';
 import { IAPDebugPanel } from '@/components/IAPDebugPanel';
+import { SubscriptionDebugModal } from '@/components/SubscriptionDebugModal';
 
 // Configure notification handler
 // Notifications.setNotificationHandler({
@@ -62,6 +63,7 @@ export default function SettingsScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -741,19 +743,36 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      {/* IAP Debug Button - Always visible for now to debug TestFlight */}
+      {/* IAP Debug Buttons - Always visible for now to debug TestFlight */}
       <View style={[styles.section, { 
         backgroundColor: colors.card,
         borderWidth: 1,
         borderColor: colors.border
       }]}>
+        <ThemedText style={[styles.sectionTitle]}>Debug Tools</ThemedText>
+        
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#3b82f6',
+            borderRadius: 8,
+            padding: 16,
+            alignItems: 'center',
+            marginTop: 12,
+          }}
+          onPress={() => setShowDebugModal(true)}
+        >
+          <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+            Open Subscription Debug Modal
+          </ThemedText>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={{
             backgroundColor: '#FF6B6B',
             borderRadius: 8,
             padding: 16,
             alignItems: 'center',
-            marginTop: 16,
+            marginTop: 12,
           }}
           onPress={() => setShowDebugPanel(!showDebugPanel)}
         >
@@ -787,6 +806,11 @@ export default function SettingsScreen() {
         }
       }}
       errorType={'contacts'}
+    />
+    
+    <SubscriptionDebugModal 
+      visible={showDebugModal} 
+      onClose={() => setShowDebugModal(false)} 
     />
   </View>
   );
