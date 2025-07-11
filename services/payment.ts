@@ -473,9 +473,10 @@ export class PaymentService {
       if (purchases && purchases.length > 0) {
         // Find the most recent valid subscription
         const validPurchases = purchases.filter(
-          purchase => !purchase.transactionReceipt || 
-          purchase.productId === IOS_MONTHLY_PRODUCT_ID || 
-          purchase.productId === IOS_YEARLY_PRODUCT_ID
+          purchase => purchase.transactionReceipt && (
+            purchase.productId === IOS_MONTHLY_PRODUCT_ID || 
+            purchase.productId === IOS_YEARLY_PRODUCT_ID
+          )
         );
         
         if (validPurchases.length > 0) {

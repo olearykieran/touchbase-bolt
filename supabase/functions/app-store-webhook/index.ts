@@ -247,16 +247,20 @@ async function processAppReceipt(receiptData: string, userId: string): Promise<a
   try {
     console.log(`Processing receipt for user: ${userId}`);
     console.log(`Receipt data length: ${receiptData?.length || 0}`);
+    console.log(`Receipt data preview: ${receiptData?.substring(0, 50)}...`);
     
     // Verify receipt with Apple
+    console.log('Starting receipt verification with Apple...');
     const verificationResult = await verifyReceipt(receiptData);
+    console.log('Verification completed, status:', verificationResult.status);
     
     if (verificationResult.status !== 0) {
       console.error(`Receipt verification failed with status: ${verificationResult.status}`);
+      console.error(`Status message: ${getStatusMessage(verificationResult.status)}`);
       console.error(`Verification result:`, JSON.stringify(verificationResult).substring(0, 500));
       return {
         success: false,
-        message: `Receipt verification failed: ${verificationResult.status}`,
+        message: `Receipt verification failed: ${verificationResult.status} - ${getStatusMessage(verificationResult.status)}`,
         status: verificationResult.status
       };
     }
@@ -307,11 +311,15 @@ async function processAppReceipt(receiptData: string, userId: string): Promise<a
 // Main server function
 serve(async (req: Request) => {
   console.log('--- App Store webhook received ---');
+  console.log('Method:', req.method);
+  console.log('Content-Type:', req.headers.get('content-type'));
+  console.log('Headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
   
   try {
     // Handle different request methods
     if (req.method === 'POST') {
       const contentType = req.headers.get('content-type') || '';
+      console.log('Processing POST request with content type:', contentType);
       
       // App Store server notifications come as JSON
       if (contentType.includes('application/json')) {
@@ -329,12 +337,21 @@ serve(async (req: Request) => {
       
       // Direct receipt validation from the app
       else if (contentType.includes('application/x-www-form-urlencoded')) {
+        console.log('Processing URL encoded request');
         const body = await req.text();
+        console.log('Body length:', body.length);
+        console.log('Body preview:', body.substring(0, 100) + '...');
+        
         const params = new URLSearchParams(body);
         const receiptData = params.get('receipt-data');
         const userId = params.get('user-id');
         
+        console.log('Receipt data exists:', !!receiptData);
+        console.log('Receipt data length:', receiptData?.length || 0);
+        console.log('User ID:', userId);
+        
         if (!receiptData || !userId) {
+          console.error('Missing data - receipt:', !!receiptData, 'userId:', !!userId);
           return new Response(JSON.stringify({ 
             error: 'Missing receipt data or user ID' 
           }), { 
