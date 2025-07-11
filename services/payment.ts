@@ -292,7 +292,7 @@ export class PaymentService {
                       Authorization: `Bearer ${session.access_token}`,
                       'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: params,
+                    body: params.toString(),
                   }
                 );
                 
@@ -368,7 +368,7 @@ export class PaymentService {
                       Authorization: `Bearer ${session.access_token}`,
                       'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: params,
+                    body: params.toString(),
                   }
                 );
                 
