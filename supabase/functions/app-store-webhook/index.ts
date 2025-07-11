@@ -2,6 +2,24 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as base64 from 'https://deno.land/std@0.168.0/encoding/base64.ts';
 
+// Helper function to get human-readable status messages
+function getStatusMessage(status: number): string {
+  const statusMessages: Record<number, string> = {
+    0: 'Valid receipt',
+    21000: 'App Store could not read JSON',
+    21002: 'Receipt data property was malformed',
+    21003: 'Receipt could not be authenticated',
+    21004: 'Shared secret does not match',
+    21005: 'Receipt server is not currently available',
+    21006: 'Receipt is valid but subscription has expired',
+    21007: 'Sandbox receipt sent to production',
+    21008: 'Production receipt sent to sandbox',
+    21009: 'Internal data access error',
+    21010: 'User account not found'
+  };
+  return statusMessages[status] || `Unknown status: ${status}`;
+}
+
 // Environment variables
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -50,6 +68,11 @@ async function verifyReceipt(receiptData: string, isProduction = true): Promise<
       return verifyReceipt(receiptData, false);
     }
     
+    // Log any non-zero status for debugging
+    if (result.status !== 0) {
+      console.error(`Receipt validation returned status ${result.status}:`, getStatusMessage(result.status));
+    }
+    
     return result;
   } catch (error) {
     console.error('Error verifying receipt:', error);
@@ -78,14 +101,20 @@ async function updateUserSubscription(
         weekly_message_count: 0,
         last_message_reset: new Date().toISOString(),
       })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select();
 
     if (error) {
       console.error('Error updating subscription in database:', error);
       throw error;
     }
     
-    console.log('Successfully updated subscription for user:', userId);
+    if (!data || data.length === 0) {
+      console.error(`No profile found for user ID: ${userId}`);
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    
+    console.log('Successfully updated subscription for user:', userId, 'Updated data:', data[0]);
   } catch (error) {
     console.error('Exception during database update:', error);
     throw error;

@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
-      "buildNumber": "17",
+      "buildNumber": "20",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.",
@@ -85,6 +85,7 @@
       "stripeYearlyPriceId": "price_1RGnLqBaBfFAgOwMRU7SuiGA",
       "iosMonthlyProductId": "com.holygrailstudio.boltexponativewind.monthlysub",
       "iosYearlyProductId": "com.holygrailstudio.boltexponativewind.yearlysub",
+      "supabaseUrl": "https://nocqcvnmmoadxhhjgnys.supabase.co",
       "SENTRY_DSN": "https://7aeca10e48ef9612852cb25fc090a711@o4509243376795648.ingest.us.sentry.io/4509243377582080"
     },
     "newArchEnabled": false

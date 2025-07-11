@@ -24,6 +24,8 @@ export const isSimulator = () => {
 // Payment service to handle platform-specific payments
 export class PaymentService {
   static isIAPAvailable = false;
+  static purchaseUpdateSubscription: any = null;
+  static purchaseErrorSubscription: any = null;
 
   // Initialize IAP on app startup
   static async initialize() {
@@ -45,6 +47,31 @@ export class PaymentService {
           skus: [IOS_MONTHLY_PRODUCT_ID, IOS_YEARLY_PRODUCT_ID],
         });
         console.log(`[PaymentService] Loaded ${products.length} products:`, products.map(p => p.productId));
+        
+        // Clear any pending transactions from previous sessions
+        console.log('[PaymentService] Checking for pending transactions...');
+        try {
+          const pending = await IAP.getAvailablePurchases();
+          if (pending && pending.length > 0) {
+            console.log(`[PaymentService] Found ${pending.length} pending transactions, clearing...`);
+            for (const purchase of pending) {
+              try {
+                await IAP.finishTransaction({ 
+                  purchase,
+                  isConsumable: false,
+                });
+                console.log(`[PaymentService] Cleared pending transaction: ${purchase.productId}`);
+              } catch (error) {
+                console.error(`[PaymentService] Error clearing transaction:`, error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[PaymentService] Error checking pending transactions:', error);
+        }
+        
+        // Set up purchase listeners
+        this.setupPurchaseListeners();
       } catch (error) {
         console.error('[PaymentService] Error initializing IAP:', error);
         this.isIAPAvailable = false;
@@ -52,11 +79,43 @@ export class PaymentService {
       }
     }
   }
+  
+  // Set up listeners for purchase updates
+  static setupPurchaseListeners() {
+    // Listen for successful purchases
+    this.purchaseUpdateSubscription = IAP.purchaseUpdatedListener((purchase: any) => {
+      console.log('[PaymentService] Purchase updated:', purchase);
+      // Auto-finish any successful purchase to prevent stuck transactions
+      if (purchase && purchase.transactionId) {
+        IAP.finishTransaction({ 
+          purchase,
+          isConsumable: false,
+        }).catch(error => {
+          console.error('[PaymentService] Error auto-finishing transaction:', error);
+        });
+      }
+    });
+    
+    // Listen for purchase errors
+    this.purchaseErrorSubscription = IAP.purchaseErrorListener((error: any) => {
+      console.error('[PaymentService] Purchase error listener:', error);
+    });
+  }
 
   // Clean up on app shutdown
   static async endConnection() {
     if (Platform.OS === 'ios' && this.isIAPAvailable) {
       try {
+        // Remove listeners
+        if (this.purchaseUpdateSubscription) {
+          this.purchaseUpdateSubscription.remove();
+          this.purchaseUpdateSubscription = null;
+        }
+        if (this.purchaseErrorSubscription) {
+          this.purchaseErrorSubscription.remove();
+          this.purchaseErrorSubscription = null;
+        }
+        
         await IAP.endConnection();
       } catch (error) {
         console.error('Error ending IAP connection:', error);

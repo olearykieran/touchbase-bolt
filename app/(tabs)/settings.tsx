@@ -34,6 +34,8 @@ import {
   sendTestNotification,
 } from '../../lib/notificationUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/ThemedText';
 import { PaymentService } from '@/services/payment';
 import { isSimulator } from '@/services/payment';
@@ -103,6 +105,26 @@ export default function SettingsScreen() {
     // Fetch subscription status whenever refreshTrigger changes
     fetchSubscriptionStatus();
   }, [refreshTrigger]);
+
+  // Check for profile refresh flag when screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkProfileRefresh = async () => {
+        try {
+          const needsRefresh = await AsyncStorage.getItem('need_profile_refresh');
+          if (needsRefresh === 'true') {
+            console.log('[Settings] Profile refresh needed, fetching subscription status...');
+            await AsyncStorage.removeItem('need_profile_refresh');
+            await fetchSubscriptionStatus();
+          }
+        } catch (error) {
+          console.error('[Settings] Error checking profile refresh flag:', error);
+        }
+      };
+      
+      checkProfileRefresh();
+    }, [])
+  );
 
   const checkNotificationPermissions = async () => {
     const { status } = await Notifications.getPermissionsAsync();
@@ -709,6 +731,29 @@ export default function SettingsScreen() {
         )}
       </View>
 
+      {/* Legal Links Section */}
+      <View style={[styles.section, { 
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border
+      }]}>
+        <ThemedText style={[styles.sectionTitle]}>Legal</ThemedText>
+        
+        <TouchableOpacity
+          style={styles.option}
+          onPress={() => Linking.openURL('https://keeptouch.app/terms')}
+        >
+          <ThemedText style={styles.optionText}>Terms of Use</ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.option}
+          onPress={() => Linking.openURL('https://keeptouch.app/privacy')}
+        >
+          <ThemedText style={styles.optionText}>Privacy Policy</ThemedText>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.section, { 
         backgroundColor: colors.card,
         borderWidth: 1,
@@ -743,47 +788,51 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      {/* IAP Debug Buttons - Always visible for now to debug TestFlight */}
-      <View style={[styles.section, { 
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border
-      }]}>
-        <ThemedText style={[styles.sectionTitle]}>Debug Tools</ThemedText>
-        
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#3b82f6',
-            borderRadius: 8,
-            padding: 16,
-            alignItems: 'center',
-            marginTop: 12,
-          }}
-          onPress={() => setShowDebugModal(true)}
-        >
-          <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-            Open Subscription Debug Modal
-          </ThemedText>
-        </TouchableOpacity>
+      {/* IAP Debug Buttons - Only in development/TestFlight */}
+      {(__DEV__ || process.env.NODE_ENV === 'development') && (
+        <>
+          <View style={[styles.section, { 
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border
+          }]}>
+            <ThemedText style={[styles.sectionTitle]}>Debug Tools</ThemedText>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#3b82f6',
+                borderRadius: 8,
+                padding: 16,
+                alignItems: 'center',
+                marginTop: 12,
+              }}
+              onPress={() => setShowDebugModal(true)}
+            >
+              <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                Open Subscription Debug Modal
+              </ThemedText>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#FF6B6B',
-            borderRadius: 8,
-            padding: 16,
-            alignItems: 'center',
-            marginTop: 12,
-          }}
-          onPress={() => setShowDebugPanel(!showDebugPanel)}
-        >
-          <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-            {showDebugPanel ? 'Hide' : 'Show'} IAP Debug Info
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#FF6B6B',
+                borderRadius: 8,
+                padding: 16,
+                alignItems: 'center',
+                marginTop: 12,
+              }}
+              onPress={() => setShowDebugPanel(!showDebugPanel)}
+            >
+              <ThemedText style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                {showDebugPanel ? 'Hide' : 'Show'} IAP Debug Info
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
 
-      {/* IAP Debug Panel */}
-      <IAPDebugPanel visible={showDebugPanel} />
+          {/* IAP Debug Panel */}
+          <IAPDebugPanel visible={showDebugPanel} />
+        </>
+      )}
     </ScrollView>
     
     <PaywallModal
