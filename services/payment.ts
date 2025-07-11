@@ -492,9 +492,9 @@ export class PaymentService {
             const receiptData = recentPurchase.transactionReceipt;
             
             if (receiptData) {
-              const formData = new FormData();
-              formData.append('receipt-data', receiptData);
-              formData.append('user-id', session.user.id);
+              const params = new URLSearchParams();
+              params.append('receipt-data', receiptData);
+              params.append('user-id', session.user.id);
               
               const response = await fetch(
                 `${Constants.expoConfig?.extra?.supabaseUrl}/functions/v1/app-store-webhook`,
@@ -502,8 +502,9 @@ export class PaymentService {
                   method: 'POST',
                   headers: {
                     Authorization: `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
                   },
-                  body: formData,
+                  body: params,
                 }
               );
               
