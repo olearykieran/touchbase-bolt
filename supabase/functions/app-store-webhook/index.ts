@@ -279,15 +279,40 @@ async function processAppReceipt(receiptData: string, userId: string): Promise<a
       parseInt(b.purchase_date_ms) - parseInt(a.purchase_date_ms)
     )[0];
     
+    // Debug logging
+    console.log('Latest transaction product_id:', latestTransaction.product_id);
+    console.log('Monthly product ID:', monthlyProductId);
+    console.log('Yearly product ID:', yearlyProductId);
+    console.log('Full transaction data:', JSON.stringify(latestTransaction, null, 2));
+    
     // Determine subscription type based on product ID
     let subscriptionType: 'monthly' | 'yearly' = 'monthly';
     if (latestTransaction.product_id === yearlyProductId) {
       subscriptionType = 'yearly';
+    } else if (latestTransaction.product_id === monthlyProductId) {
+      subscriptionType = 'monthly';
+    } else {
+      console.warn(`Unknown product ID: ${latestTransaction.product_id}, defaulting to monthly`);
     }
     
     // Calculate expiration date
     const expiresDateMs = parseInt(latestTransaction.expires_date_ms);
     const expiresDate = expiresDateMs ? new Date(expiresDateMs).toISOString() : null;
+    
+    // Additional check: If product ID detection failed, try to determine by duration
+    if (subscriptionType === 'monthly' && expiresDateMs && latestTransaction.purchase_date_ms) {
+      const purchaseDateMs = parseInt(latestTransaction.purchase_date_ms);
+      const durationMs = expiresDateMs - purchaseDateMs;
+      const durationDays = durationMs / (1000 * 60 * 60 * 24);
+      
+      console.log(`Duration check: ${durationDays} days between purchase and expiry`);
+      
+      // If duration is more than 60 days, it's likely a yearly subscription
+      if (durationDays > 60) {
+        console.log('Duration suggests yearly subscription, overriding to yearly');
+        subscriptionType = 'yearly';
+      }
+    }
     
     // Update user subscription in database
     await updateUserSubscription(userId, subscriptionType, expiresDate);

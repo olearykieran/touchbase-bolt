@@ -844,6 +844,12 @@ export default function SettingsScreen() {
           
           if (success) {
             console.log(`${Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'} purchase initiated successfully`);
+            // Show success message
+            Alert.alert(
+              'Success!', 
+              'Your subscription has been activated. Thank you for upgrading!',
+              [{ text: 'OK' }]
+            );
             // Refresh subscription status after successful purchase
             setRefreshTrigger((prev) => prev + 1);
           }

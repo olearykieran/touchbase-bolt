@@ -220,6 +220,12 @@ export default function AddContactScreen() {
             Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'
           } purchase initiated successfully`
         );
+        // Show success message
+        Alert.alert(
+          'Success!', 
+          'Your subscription has been activated. You can now add unlimited contacts!',
+          [{ text: 'OK' }]
+        );
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
