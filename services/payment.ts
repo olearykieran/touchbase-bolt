@@ -213,6 +213,10 @@ export class PaymentService {
       if (Platform.OS === 'ios') {
         // iOS: Use Apple In-App Purchase
         const productId = plan === 'monthly' ? IOS_MONTHLY_PRODUCT_ID : IOS_YEARLY_PRODUCT_ID;
+        console.log(`[PaymentService] Plan selected: ${plan}`);
+        console.log(`[PaymentService] Product ID to purchase: ${productId}`);
+        console.log(`[PaymentService] Monthly ID: ${IOS_MONTHLY_PRODUCT_ID}`);
+        console.log(`[PaymentService] Yearly ID: ${IOS_YEARLY_PRODUCT_ID}`);
         
         // Handle simulator case
         if (isSimulator() || !this.isIAPAvailable) {
@@ -257,10 +261,8 @@ export class PaymentService {
         try {
           console.log(`[PaymentService] Requesting purchase for product: ${productId}`);
           
-          // Request purchase
-          const purchases = await IAP.requestPurchase({
-            sku: productId,
-          });
+          // Request purchase - in v12, iOS uses just the sku string
+          const purchases = await IAP.requestPurchase(productId, false);
           
           console.log('[PaymentService] Purchase result:', JSON.stringify(purchases));
           
