@@ -590,8 +590,8 @@ export default function SettingsScreen() {
         borderColor: colors.border
       }]}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={24} color="#64403E" />
-          <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
+          <LogOut size={24} color={colorScheme === 'dark' ? '#ff6b6b' : '#64403E'} />
+          <ThemedText style={[styles.signOutText, { color: colorScheme === 'dark' ? '#ff6b6b' : '#64403E' }]}>Sign Out</ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -604,8 +604,8 @@ export default function SettingsScreen() {
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
         >
-          <Trash2 size={24} color="#64403E" />
-          <ThemedText style={styles.deleteText}>Delete Account</ThemedText>
+          <Trash2 size={24} color={colorScheme === 'dark' ? '#ff6b6b' : '#64403E'} />
+          <ThemedText style={[styles.deleteText, { color: colorScheme === 'dark' ? '#ff6b6b' : '#64403E' }]}>Delete Account</ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -696,8 +696,8 @@ export default function SettingsScreen() {
               onPress={handleCancelSubscription}
               disabled={isLoading}
             >
-              <Ban size={24} color="#64403E" />
-              <ThemedText style={styles.cancelText}>Cancel Subscription</ThemedText>
+              <Ban size={24} color={colorScheme === 'dark' ? '#ff6b6b' : '#64403E'} />
+              <ThemedText style={[styles.cancelText, { color: colorScheme === 'dark' ? '#ff6b6b' : '#64403E' }]}>Cancel Subscription</ThemedText>
             </TouchableOpacity>
           )}
 

@@ -112,9 +112,7 @@ export default function AddContactScreen() {
   const requestContactPermission = async () => {
     const { status } = await Contacts.requestPermissionsAsync();
     setContactPermissionStatus(status);
-    if (status === 'granted') {
-      setShowContactPermissionPrompt(false);
-    }
+    setShowContactPermissionPrompt(false);
   };
 
   // Onboarding state
@@ -282,7 +280,7 @@ export default function AddContactScreen() {
                   </ThemedText>
                   <TouchableOpacity
                     style={{
-                      backgroundColor: '#fff',
+                      backgroundColor: colors.card,
                       paddingVertical: 8,
                       paddingHorizontal: 16,
                       borderRadius: 8,
@@ -291,7 +289,7 @@ export default function AddContactScreen() {
                     }}
                     onPress={handleNextAddOnboarding}
                   >
-                    <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
+                    <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>
                       Next
                     </ThemedText>
                   </TouchableOpacity>
@@ -299,8 +297,8 @@ export default function AddContactScreen() {
               }
               placement="bottom"
               onClose={handleCloseTooltip}
-              contentStyle={{ backgroundColor: '#007AFF' }}
-              arrowStyle={{ borderTopColor: '#007AFF' }}
+              contentStyle={{ backgroundColor: colors.accent }}
+              arrowStyle={{ borderTopColor: colors.accent }}
               backgroundColor="rgba(0,0,0,0.4)"
             >
               <TouchableOpacity
@@ -428,7 +426,7 @@ export default function AddContactScreen() {
                 </ThemedText>
                 <TouchableOpacity
                   style={{
-                    backgroundColor: '#fff',
+                    backgroundColor: colors.card,
                     paddingVertical: 8,
                     paddingHorizontal: 16,
                     borderRadius: 8,
@@ -556,7 +554,7 @@ export default function AddContactScreen() {
                 </ThemedText>
                 <TouchableOpacity
                   style={{
-                    backgroundColor: '#fff',
+                    backgroundColor: colors.card,
                     paddingVertical: 8,
                     paddingHorizontal: 16,
                     borderRadius: 8,
@@ -565,7 +563,7 @@ export default function AddContactScreen() {
                   }}
                   onPress={handleNextAddOnboarding}
                 >
-                  <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
+                  <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>
                     Got it!
                   </ThemedText>
                 </TouchableOpacity>
@@ -826,20 +824,7 @@ export default function AddContactScreen() {
                   fontSize: 16,
                 }}
               >
-                Enable Contacts Access
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowContactPermissionPrompt(false)}
-            >
-              <ThemedText
-                style={{
-                  color: colors.secondaryText,
-                  fontSize: 15,
-                  marginTop: 4,
-                }}
-              >
-                Maybe later
+                Continue
               </ThemedText>
             </TouchableOpacity>
           </View>
