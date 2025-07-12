@@ -262,17 +262,16 @@ export class PaymentService {
           console.log(`[PaymentService] Requesting purchase for product: ${productId}`);
           
           // Request purchase - in v12, iOS uses just the sku string
-          const purchases = await IAP.requestPurchase(productId, false);
+          const purchase = await IAP.requestPurchase(productId);
           
-          console.log('[PaymentService] Purchase result:', JSON.stringify(purchases));
+          console.log('[PaymentService] Purchase result:', JSON.stringify(purchase));
           
           // Here we would validate the purchase with our backend
           // For now, we'll directly update the local flag to refresh on next focus
           await AsyncStorage.setItem('need_profile_refresh', 'true');
           
           // Finish the transaction
-          if (purchases && Array.isArray(purchases) && purchases.length > 0) {
-            const purchase = purchases[0];
+          if (purchase && purchase.transactionId) {
             
             // Validate receipt with our backend
             try {
@@ -284,7 +283,10 @@ export class PaymentService {
                 params.append('receipt-data', receiptData);
                 params.append('user-id', session.user.id);
                 
+                const bodyString = params.toString();
                 console.log(`[PaymentService] Sending receipt to: ${Constants.expoConfig?.extra?.supabaseUrl}/functions/v1/app-store-webhook`);
+                console.log(`[PaymentService] Request body length: ${bodyString.length}`);
+                console.log(`[PaymentService] Purchase product ID: ${purchase.productId}`);
                 
                 const response = await fetch(
                   `${Constants.expoConfig?.extra?.supabaseUrl}/functions/v1/app-store-webhook`,
@@ -294,7 +296,7 @@ export class PaymentService {
                       Authorization: `Bearer ${session.access_token}`,
                       'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: params.toString(),
+                    body: bodyString,
                   }
                 );
                 
@@ -351,45 +353,6 @@ export class PaymentService {
                 isConsumable: false,
               });
             }
-          } else if (purchases && !Array.isArray(purchases)) {
-            // Handle non-array purchase result 
-            const purchase = purchases;
-            
-            try {
-              const receiptData = purchase.transactionReceipt;
-              if (receiptData) {
-                const params = new URLSearchParams();
-                params.append('receipt-data', receiptData);
-                params.append('user-id', session.user.id);
-                
-                const response = await fetch(
-                  `${Constants.expoConfig?.extra?.supabaseUrl}/functions/v1/app-store-webhook`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      Authorization: `Bearer ${session.access_token}`,
-                      'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: params.toString(),
-                  }
-                );
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  console.log('Receipt validation result:', result);
-                } else {
-                  const errorText = await response.text();
-                  console.error('Receipt validation failed during restore:', errorText);
-                }
-              }
-            } catch (validationError) {
-              console.error('Error validating receipt:', validationError);
-            }
-            
-            await IAP.finishTransaction({ 
-              purchase,
-              isConsumable: false,
-            });
           }
           
           return true;
