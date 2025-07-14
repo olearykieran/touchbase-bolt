@@ -9,15 +9,16 @@ KeepTouch is a React Native app built with Expo that helps users maintain connec
 - **Router**: Expo Router
 - **Backend**: Supabase (auth, database, edge functions)
 - **Payments**: 
-  - iOS: Apple In-App Purchase (react-native-iap)
-  - Android: Stripe (planned)
+  - iOS: RevenueCat SDK (handles Apple In-App Purchase)
+  - Android: RevenueCat SDK (planned)
 - **Analytics**: Sentry
 - **State Management**: Zustand
 
 ## Important Files & Directories
 - `app/` - Expo Router app directory
 - `components/` - Shared React components
-- `services/payment.ts` - Payment service handling IAP
+- `services/revenueCatPayment.ts` - RevenueCat payment service
+- `components/RevenueCatPaywallModal.tsx` - Subscription paywall UI
 - `supabase/functions/` - Edge functions for backend
 - `ios/` - iOS native project files
 - `android/` - Android native project files
@@ -116,10 +117,16 @@ Check `app.json` extra field for:
 
 ## Edge Functions
 Located in `supabase/functions/`:
-- `app-store-webhook/` - Handles Apple receipt validation
-- `test-upgrade-subscription/` - Test endpoint for simulator
 - `generate-message/` - AI message generation
 - `send-notifications/` - Push notification scheduling
+- `test-upgrade-subscription/` - Test endpoint for simulator
+
+## Subscription Architecture
+- **Single Source of Truth**: RevenueCat handles all subscription management
+- **Account Mismatch Handling**: Subscriptions follow app login, not Apple ID
+- **Real-time Sync**: RevenueCat automatically syncs subscription status to Supabase
+- **No Manual Receipt Validation**: RevenueCat handles this automatically
+- See `SUBSCRIPTION_ARCHITECTURE.md` for detailed documentation
 
 ## Common Issues
 
@@ -128,7 +135,11 @@ Located in `supabase/functions/`:
 2. Verify products are created in App Store Connect
 3. Ensure products are in "Ready to Submit" state
 4. Check bundle ID matches exactly
-5. Verify shared secret is set in Supabase env vars
+5. Verify RevenueCat is configured:
+   - Products imported in RevenueCat dashboard
+   - Entitlement created and products attached
+   - Offerings configured with correct packages
+6. Check RevenueCat API key in `revenueCatPayment.ts`
 
 ### Build Failures
 - Run `cd ios && pod install` after package changes

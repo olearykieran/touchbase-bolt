@@ -172,7 +172,14 @@ export class RevenueCatPaymentService {
     // Set flag to refresh profile
     await AsyncStorage.setItem('need_profile_refresh', 'true');
     
-    // The purchase is automatically synced to your backend via RevenueCat webhooks
+    // Immediately sync the new subscription status
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      await this.handleCustomerInfoUpdate(customerInfo);
+    } catch (error) {
+      console.error('[RevenueCat] Error syncing after purchase:', error);
+    }
+    
     return true;
   }
 
@@ -185,17 +192,58 @@ export class RevenueCatPaymentService {
       // Update local storage
       await AsyncStorage.setItem('is_premium', isPremium.toString());
       
-      // You can also sync this with your Supabase backend if needed
+      // Sync with Supabase backend
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
+        // Get subscription details
+        let subscriptionStatus: 'free' | 'monthly' | 'yearly' = 'free';
+        let subscriptionEnd: string | null = null;
+        
+        if (isPremium) {
+          // Find active subscription details
+          const activeEntitlements = Object.values(customerInfo.entitlements.active);
+          if (activeEntitlements.length > 0) {
+            const entitlement = activeEntitlements[0];
+            
+            // Determine subscription type from product ID
+            if (entitlement.productIdentifier.includes('monthly')) {
+              subscriptionStatus = 'monthly';
+            } else if (entitlement.productIdentifier.includes('yearly') || entitlement.productIdentifier.includes('annual')) {
+              subscriptionStatus = 'yearly';
+            } else {
+              // Fallback: check by identifier or default to monthly
+              subscriptionStatus = entitlement.identifier.includes('annual') ? 'yearly' : 'monthly';
+            }
+            
+            // Set expiration date
+            subscriptionEnd = entitlement.expirationDate || null;
+          }
+        }
+        
+        console.log('[RevenueCat] Syncing to Supabase:', {
+          userId: session.user.id,
+          subscriptionStatus,
+          subscriptionEnd
+        });
+        
         // Update user profile in Supabase
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({ 
-            is_premium: isPremium,
-            subscription_status: isPremium ? 'active' : 'inactive'
+            subscription_status: subscriptionStatus,
+            subscription_start: isPremium ? new Date().toISOString() : null,
+            subscription_end: subscriptionEnd,
+            // Reset message count for premium users
+            weekly_message_count: 0,
+            last_message_reset: new Date().toISOString()
           })
           .eq('id', session.user.id);
+          
+        if (error) {
+          console.error('[RevenueCat] Error updating Supabase profile:', error);
+        } else {
+          console.log('[RevenueCat] Successfully synced subscription to Supabase');
+        }
       }
     } catch (error) {
       console.error('[RevenueCat] Error handling customer info update:', error);
@@ -244,6 +292,9 @@ export class RevenueCatPaymentService {
       if (isPremium) {
         Alert.alert('Success', 'Your subscription has been restored!');
         await AsyncStorage.setItem('need_profile_refresh', 'true');
+        
+        // Sync restored subscription to Supabase
+        await this.handleCustomerInfoUpdate(customerInfo);
       } else {
         Alert.alert('No Subscription Found', 'No active subscription found to restore.');
       }
