@@ -1,18 +1,13 @@
 import { Platform, Alert } from 'react-native';
 import Purchases, { 
   PurchasesOffering, 
-  PurchasesPackage,
-  CustomerInfo,
-  PurchasesEntitlementInfo 
+  CustomerInfo
 } from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 // RevenueCat API Key - from your RevenueCat dashboard
 const REVENUECAT_API_KEY = 'appl_uQuEWLwAuYjhYWhtEmNbarnyiob';
-
-// Entitlement identifier from RevenueCat dashboard
-const ENTITLEMENT_ID = 'premium'; // You'll need to create this in RevenueCat
 
 export type SubscriptionPlan = 'monthly' | 'yearly';
 
@@ -84,19 +79,19 @@ export class RevenueCatPaymentService {
           try {
             console.log('[RevenueCat] Processing package:', pkg.identifier);
             
-            // Check if storeProduct exists
-            if (!pkg.storeProduct) {
-              console.error('[RevenueCat] Package missing storeProduct:', pkg);
+            // Check if product exists
+            if (!pkg.product) {
+              console.error('[RevenueCat] Package missing product:', pkg);
               return null;
             }
             
             return {
-              productId: pkg.storeProduct.identifier,
-              title: pkg.storeProduct.title,
-              description: pkg.storeProduct.description,
-              price: pkg.storeProduct.price.toString(),
-              currency: pkg.storeProduct.currencyCode || 'USD',
-              localizedPrice: pkg.storeProduct.priceString,
+              productId: pkg.product.identifier,
+              title: pkg.product.title,
+              description: pkg.product.description,
+              price: pkg.product.price.toString(),
+              currency: pkg.product.currencyCode || 'USD',
+              localizedPrice: pkg.product.priceString,
               packageType: pkg.packageType,
               identifier: pkg.identifier
             };
@@ -169,21 +164,21 @@ export class RevenueCatPaymentService {
             pkg => pkg.packageType === 'MONTHLY' ||
                    pkg.identifier === '$rc_monthly' ||
                    pkg.identifier === 'monthly' ||
-                   pkg.storeProduct.identifier.includes('monthly')
+                   pkg.product.identifier.includes('monthly')
           );
         } else {
           packageToPurchase = this.offerings.availablePackages.find(
             pkg => pkg.packageType === 'ANNUAL' ||
                    pkg.identifier === '$rc_annual' ||
                    pkg.identifier === 'annual' ||
-                   pkg.storeProduct.identifier.includes('yearly') ||
-                   pkg.storeProduct.identifier.includes('annual')
+                   pkg.product.identifier.includes('yearly') ||
+                   pkg.product.identifier.includes('annual')
           );
         }
 
         if (packageToPurchase) {
           console.log('[RevenueCat] Purchasing package:', packageToPurchase.identifier);
-          console.log('[RevenueCat] Product:', packageToPurchase.storeProduct.identifier);
+          console.log('[RevenueCat] Product:', packageToPurchase.product.identifier);
           const result = await Purchases.purchasePackage(packageToPurchase);
           return await this.handlePurchaseResult(result);
         }
@@ -256,23 +251,32 @@ export class RevenueCatPaymentService {
         let subscriptionEnd: string | null = null;
         
         if (isPremium) {
-          // Find active subscription details
+          // Find active subscription details (matching working app pattern)
           const activeEntitlements = Object.values(customerInfo.entitlements.active);
           if (activeEntitlements.length > 0) {
+            // Use the first active entitlement
             const entitlement = activeEntitlements[0];
             
             // Determine subscription type from product ID
-            if (entitlement.productIdentifier.includes('monthly')) {
+            const productId = entitlement.productIdentifier;
+            if (productId.includes('monthly')) {
               subscriptionStatus = 'monthly';
-            } else if (entitlement.productIdentifier.includes('yearly') || entitlement.productIdentifier.includes('annual')) {
+            } else if (productId.includes('yearly') || productId.includes('annual')) {
               subscriptionStatus = 'yearly';
             } else {
-              // Fallback: check by identifier or default to monthly
-              subscriptionStatus = entitlement.identifier.includes('annual') ? 'yearly' : 'monthly';
+              // Default to monthly if can't determine
+              subscriptionStatus = 'monthly';
+              console.log('[RevenueCat] Could not determine subscription type from product:', productId);
             }
             
             // Set expiration date
             subscriptionEnd = entitlement.expirationDate || null;
+            
+            console.log('[RevenueCat] Active subscription:', {
+              productId,
+              type: subscriptionStatus,
+              expires: subscriptionEnd
+            });
           }
         }
         
@@ -308,14 +312,16 @@ export class RevenueCatPaymentService {
 
   // Check if user has active subscription
   static hasActiveSubscription(customerInfo: CustomerInfo): boolean {
-    // Check if the user has the premium entitlement
-    if (ENTITLEMENT_ID in customerInfo.entitlements.active) {
-      const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
-      return entitlement.isActive;
+    // Check for any active entitlement (like the working app)
+    const activeEntitlements = customerInfo.entitlements.active;
+    
+    // If user has any active entitlements, they have a subscription
+    if (Object.keys(activeEntitlements).length > 0) {
+      console.log('[RevenueCat] Found active entitlements:', Object.keys(activeEntitlements));
+      return true;
     }
     
-    // Fallback: check if any entitlement is active
-    return Object.keys(customerInfo.entitlements.active).length > 0;
+    return false;
   }
 
   // Check current subscription status
