@@ -1,0 +1,8 @@
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-fetch"],
+  "env": {
+    "FETCH_BASE_URL": "https://mcp.revenuecat.ai/mcp",
+    "FETCH_HEADERS": "{\"Authorization\": \"Bearer sk_NFyMoVQfybuCuFieZPFDGqKWNjOaR\"}"
+  }
+}

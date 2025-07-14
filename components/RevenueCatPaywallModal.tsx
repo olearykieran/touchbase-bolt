@@ -78,7 +78,9 @@ export default function RevenueCatPaywallModal({ visible, onClose, onUpgrade, er
           <Text style={[styles.body, { color: colors.secondaryText }]}> 
             {errorType === 'messages'
               ? 'You have reached your free AI messages limit (3/week). Upgrade to send unlimited messages.'
-              : 'You have reached your free contacts limit (3 contacts). Upgrade to add unlimited contacts.'}
+              : errorType === 'contacts'
+              ? 'You have reached your free contacts limit (3 contacts). Upgrade to add unlimited contacts.'
+              : 'Unlock unlimited contacts and AI messages with KeepTouch Premium.'}
           </Text>
           
           {loading ? (
