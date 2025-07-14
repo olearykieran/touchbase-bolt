@@ -791,7 +791,7 @@ export default function SettingsScreen() {
       )}
 
       {/* IAP Debug Buttons - Only in development/TestFlight */}
-      {(__DEV__ || process.env.NODE_ENV === 'development') && (
+      {__DEV__ && (
         <>
           <View style={[styles.section, { 
             backgroundColor: colors.card,
@@ -831,8 +831,9 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* IAP Debug Panel */}
-          <IAPDebugPanel visible={showDebugPanel} />
+          {showDebugPanel && (
+            <IAPDebugPanel visible={showDebugPanel} />
+          )}
         </>
       )}
     </ScrollView>

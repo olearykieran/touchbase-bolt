@@ -88,7 +88,7 @@ function RootLayoutNav({
       try {
         // Initialize RevenueCat instead of react-native-iap
         await RevenueCatPaymentService.initialize();
-        console.log('RevenueCat payment service initialized');
+        // RevenueCat payment service initialized
       } catch (error) {
         console.error('Error initializing payment service:', error);
         captureException(error);
@@ -97,10 +97,24 @@ function RootLayoutNav({
 
     initializePayment();
 
+    // Initialize react-native-iap for StoreKit operations
+    const initStoreKit = async () => {
+      try {
+        const IAP = require('react-native-iap');
+        await IAP.initConnection();
+        // StoreKit connection initialized
+      } catch (error) {
+        console.error('Error initializing StoreKit:', error);
+      }
+    };
+    
+    initStoreKit();
+
     // Clean up on unmount
     return () => {
-      PaymentService.endConnection().catch((err) => {
-        console.error('Error ending payment connection:', err);
+      const IAP = require('react-native-iap');
+      IAP.endConnection().catch((err: any) => {
+        console.error('Error ending StoreKit connection:', err);
       });
     };
   }, []);

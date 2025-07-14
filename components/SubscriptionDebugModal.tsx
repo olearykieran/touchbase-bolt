@@ -8,8 +8,9 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import * as IAP from 'react-native-iap';
-import { PaymentService } from '../services/payment';
+import { RevenueCatPaymentService } from '../services/revenueCatPayment';
+import Purchases from 'react-native-purchases';
+import { StoreKitHelper } from '../services/storeKitHelper';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { useTheme } from './ThemeProvider';
@@ -19,8 +20,7 @@ interface DebugInfo {
   iapAvailable: boolean;
   products: any[];
   pendingTransactions: any[];
-  purchaseHistory: any[];
-  availablePurchases: any[];
+  customerInfo: any;
   subscriptionStatus: string;
   errors: string[];
 }
@@ -32,8 +32,7 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
     iapAvailable: false,
     products: [],
     pendingTransactions: [],
-    purchaseHistory: [],
-    availablePurchases: [],
+    customerInfo: null,
     subscriptionStatus: 'Unknown',
     errors: [],
   });
@@ -50,32 +49,29 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
     
     try {
       // Check IAP availability
-      const iapAvailable = PaymentService.isIAPAvailable;
+      const iapAvailable = RevenueCatPaymentService.isConfigured;
       
       // Load products
       let products: any[] = [];
       try {
-        products = await PaymentService.getProducts();
+        products = await RevenueCatPaymentService.getProducts();
       } catch (error: any) {
         errors.push(`Product loading error: ${error.message}`);
       }
 
-      // Check pending transactions
+      // Get customer info from RevenueCat
+      let customerInfo: any = null;
       let pendingTransactions: any[] = [];
       try {
-        pendingTransactions = await IAP.getAvailablePurchases();
-        console.log('[Debug] Pending transactions:', pendingTransactions);
+        customerInfo = await Purchases.getCustomerInfo();
+        console.log('[Debug] Customer info:', customerInfo);
+        
+        // Extract pending transactions from customer info if any
+        if (customerInfo.nonConsumablePurchases) {
+          pendingTransactions = customerInfo.nonConsumablePurchases;
+        }
       } catch (error: any) {
-        errors.push(`Pending transactions error: ${error.message}`);
-      }
-
-      // Get purchase history
-      let purchaseHistory: any[] = [];
-      try {
-        purchaseHistory = await IAP.getPurchaseHistory();
-        console.log('[Debug] Purchase history:', purchaseHistory);
-      } catch (error: any) {
-        errors.push(`Purchase history error: ${error.message}`);
+        errors.push(`Customer info error: ${error.message}`);
       }
 
       // Check subscription status from Supabase
@@ -101,8 +97,7 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
         iapAvailable,
         products,
         pendingTransactions,
-        purchaseHistory: purchaseHistory.slice(0, 5), // Last 5 for brevity
-        availablePurchases: pendingTransactions,
+        customerInfo,
         subscriptionStatus,
         errors,
       });
@@ -114,34 +109,20 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
     }
   };
 
-  const clearPendingTransactions = async () => {
+  const syncPendingPurchases = async () => {
     Alert.alert(
-      'Clear Pending Transactions',
-      'This will attempt to finish all pending transactions. Continue?',
+      'Sync Pending Purchases',
+      'This will sync all pending purchases with the App Store and clear stuck transactions. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
-          style: 'destructive',
+          text: 'Sync',
+          style: 'default',
           onPress: async () => {
             setLoading(true);
             try {
-              const pending = await IAP.getAvailablePurchases();
-              console.log(`[Debug] Found ${pending.length} pending transactions`);
-              
-              for (const purchase of pending) {
-                try {
-                  console.log(`[Debug] Finishing transaction: ${purchase.productId}`);
-                  await IAP.finishTransaction({ 
-                    purchase,
-                    isConsumable: false,
-                  });
-                } catch (error) {
-                  console.error(`[Debug] Error finishing transaction:`, error);
-                }
-              }
-              
-              Alert.alert('Success', `Cleared ${pending.length} pending transactions`);
+              await RevenueCatPaymentService.syncPendingPurchases();
+              Alert.alert('Success', 'Purchases synced successfully');
               await loadDebugInfo();
             } catch (error: any) {
               Alert.alert('Error', error.message);
@@ -154,47 +135,16 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
     );
   };
 
-  const testReceiptValidation = async () => {
+  const restorePurchases = async () => {
     setLoading(true);
     try {
-      const purchases = await IAP.getPurchaseHistory();
-      if (purchases && purchases.length > 0) {
-        const latestPurchase = purchases[0];
-        if (latestPurchase.transactionReceipt) {
-          // Test validation with our webhook
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            Alert.alert('Error', 'Please sign in first');
-            return;
-          }
-
-          const params = new URLSearchParams();
-          params.append('receipt-data', latestPurchase.transactionReceipt);
-          params.append('user-id', session.user.id);
-          
-          const response = await fetch(
-            `${Constants.expoConfig?.extra?.supabaseUrl}/functions/v1/app-store-webhook`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: params,
-            }
-          );
-
-          const result = await response.json();
-          Alert.alert(
-            'Receipt Validation Result',
-            JSON.stringify(result, null, 2).substring(0, 500)
-          );
-        } else {
-          Alert.alert('No Receipt', 'No receipt found in latest purchase');
-        }
+      const restored = await RevenueCatPaymentService.restorePurchases();
+      if (restored) {
+        Alert.alert('Success', 'Purchases restored successfully');
       } else {
-        Alert.alert('No Purchases', 'No purchase history found');
+        Alert.alert('Info', 'No purchases to restore');
       }
+      await loadDebugInfo();
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -202,13 +152,12 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
     }
   };
 
-  const reInitializeIAP = async () => {
+  const reInitializeRevenueCat = async () => {
     setLoading(true);
     try {
-      await PaymentService.endConnection();
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
-      await PaymentService.initialize();
-      Alert.alert('Success', 'IAP re-initialized');
+      // RevenueCat doesn't need to be re-initialized, but we can sync purchases
+      await RevenueCatPaymentService.syncPendingPurchases();
+      Alert.alert('Success', 'RevenueCat synced');
       await loadDebugInfo();
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -299,8 +248,8 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
                 Pending Transactions ({debugInfo.pendingTransactions.length})
               </Text>
               {debugInfo.pendingTransactions.length > 0 && (
-                <TouchableOpacity onPress={clearPendingTransactions}>
-                  <Trash2 size={20} color={colors.error} />
+                <TouchableOpacity onPress={syncPendingPurchases}>
+                  <RefreshCw size={20} color={colors.accent} />
                 </TouchableOpacity>
               )}
             </View>
@@ -324,26 +273,29 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
             )}
           </View>
 
-          {/* Purchase History */}
+          {/* Customer Info */}
           <View style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 8 }}>
-              Recent Purchase History
+              RevenueCat Customer Info
             </Text>
-            {debugInfo.purchaseHistory.map((purchase, index) => (
-              <View key={index} style={{
+            {debugInfo.customerInfo ? (
+              <View style={{
                 backgroundColor: colors.card,
                 padding: 12,
                 borderRadius: 8,
-                marginBottom: 8,
               }}>
-                <Text style={{ color: colors.text }}>{purchase.productId}</Text>
+                <Text style={{ color: colors.text }}>Customer ID: {debugInfo.customerInfo.originalAppUserId}</Text>
                 <Text style={{ color: colors.secondaryText }}>
-                  {new Date(purchase.transactionDate).toLocaleString()}
+                  Active Entitlements: {Object.keys(debugInfo.customerInfo.entitlements.active || {}).length}
                 </Text>
+                {Object.entries(debugInfo.customerInfo.entitlements.active || {}).map(([key, value]: [string, any]) => (
+                  <Text key={key} style={{ color: colors.accent, marginTop: 4 }}>
+                    • {key}: {value.productIdentifier}
+                  </Text>
+                ))}
               </View>
-            ))}
-            {debugInfo.purchaseHistory.length === 0 && (
-              <Text style={{ color: colors.secondaryText }}>No purchase history</Text>
+            ) : (
+              <Text style={{ color: colors.secondaryText }}>No customer info available</Text>
             )}
           </View>
 
@@ -387,7 +339,7 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={testReceiptValidation}
+              onPress={restorePurchases}
               style={{
                 backgroundColor: '#3b82f6',
                 padding: 16,
@@ -398,12 +350,12 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
               disabled={loading}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                Test Receipt Validation
+                Restore Purchases
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={reInitializeIAP}
+              onPress={syncPendingPurchases}
               style={{
                 backgroundColor: '#f59e0b',
                 padding: 16,
@@ -414,26 +366,65 @@ export function SubscriptionDebugModal({ visible, onClose }: { visible: boolean;
               disabled={loading}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                Re-initialize IAP
+                Sync Pending Purchases
               </Text>
             </TouchableOpacity>
 
-            {debugInfo.pendingTransactions.length > 0 && (
-              <TouchableOpacity
-                onPress={clearPendingTransactions}
-                style={{
-                  backgroundColor: colors.error,
-                  padding: 16,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-                disabled={loading}
-              >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                  Clear All Pending Transactions
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              onPress={reInitializeRevenueCat}
+              style={{
+                backgroundColor: colors.success || '#10b981',
+                padding: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+              disabled={loading}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                Re-sync RevenueCat
+              </Text>
+            </TouchableOpacity>
+
+            {/* Nuclear option for stuck transactions */}
+            <TouchableOpacity
+              onPress={async () => {
+                Alert.alert(
+                  'Clear All StoreKit Transactions',
+                  'This will forcefully clear ALL pending transactions in StoreKit. This is a nuclear option for when transactions are stuck. Continue?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Clear All',
+                      style: 'destructive',
+                      onPress: async () => {
+                        setLoading(true);
+                        try {
+                          const result = await StoreKitHelper.clearAllPendingTransactions();
+                          Alert.alert('Success', `Cleared ${result.cleared} of ${result.total} transactions`);
+                          await loadDebugInfo();
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              style={{
+                backgroundColor: colors.error,
+                padding: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+              disabled={loading}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                ⚠️ Clear ALL StoreKit Transactions
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </View>

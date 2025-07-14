@@ -1,7 +1,8 @@
 import { Platform, Alert } from 'react-native';
 import Purchases, { 
   PurchasesOffering, 
-  CustomerInfo
+  CustomerInfo,
+  LOG_LEVEL
 } from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
@@ -18,11 +19,14 @@ export class RevenueCatPaymentService {
   // Initialize RevenueCat on app startup
   static async initialize() {
     try {
-      console.log('[RevenueCat] Initializing...');
+      // Initializing RevenueCat
       
       // Configure RevenueCat
       if (Platform.OS === 'ios') {
         await Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+        
+        // Set log level to reduce verbose logging (especially JWS tokens)
+        await Purchases.setLogLevel(LOG_LEVEL.INFO);
       } else {
         // Android key would go here when you add Android support
         console.warn('[RevenueCat] Android not configured yet');
@@ -30,17 +34,23 @@ export class RevenueCatPaymentService {
       }
 
       this.isConfigured = true;
-      console.log('[RevenueCat] Initialized successfully');
+      // RevenueCat initialized successfully
 
       // Set up listener for customer info updates
       Purchases.addCustomerInfoUpdateListener(async (info) => {
-        console.log('[RevenueCat] Customer info updated:', info);
+        // Customer info updated
         await this.handleCustomerInfoUpdate(info);
       });
 
       // Don't use logIn - just check subscription status
       // This matches the working app's approach
       await this.checkSubscriptionStatus();
+      
+      // Sync any pending purchases to clear stuck transactions
+      // Only run this in sandbox/debug mode to avoid production issues
+      if (__DEV__) {
+        await this.syncPendingPurchases();
+      }
       
     } catch (error) {
       console.error('[RevenueCat] Initialization error:', error);
@@ -51,13 +61,13 @@ export class RevenueCatPaymentService {
   // The working app doesn't use logIn and it works fine
   static async loginUser(userId: string) {
     // Do nothing - just keep method for compatibility
-    console.log('[RevenueCat] Skipping login (not needed)');
+    // Skipping login (not needed)
   }
 
   // Get available products
   static async getProducts() {
     try {
-      console.log('[RevenueCat] Fetching offerings...');
+      // Fetching offerings...
       
       // Ensure RevenueCat is configured
       if (!this.isConfigured) {
@@ -66,18 +76,18 @@ export class RevenueCatPaymentService {
       }
       
       const offerings = await Purchases.getOfferings();
-      console.log('[RevenueCat] Raw offerings response:', JSON.stringify(offerings, null, 2));
+      // Offerings loaded successfully
       
       // Check if we have a current offering
       if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
         this.offerings = offerings.current;
-        console.log('[RevenueCat] Current offering:', offerings.current.identifier);
-        console.log('[RevenueCat] Available packages count:', offerings.current.availablePackages.length);
+        // Current offering loaded
+        // Packages available
         
         // Safely map packages with better error handling
         const mappedPackages = offerings.current.availablePackages.map(pkg => {
           try {
-            console.log('[RevenueCat] Processing package:', pkg.identifier);
+            // Processing package
             
             // Check if product exists
             if (!pkg.product) {
@@ -101,7 +111,7 @@ export class RevenueCatPaymentService {
           }
         }).filter(Boolean); // Remove any null entries
         
-        console.log('[RevenueCat] Mapped packages:', mappedPackages);
+        // Packages mapped successfully
         return mappedPackages;
       }
       
@@ -177,8 +187,7 @@ export class RevenueCatPaymentService {
         }
 
         if (packageToPurchase) {
-          console.log('[RevenueCat] Purchasing package:', packageToPurchase.identifier);
-          console.log('[RevenueCat] Product:', packageToPurchase.product.identifier);
+          // Purchasing package
           const result = await Purchases.purchasePackage(packageToPurchase);
           return await this.handlePurchaseResult(result);
         }
@@ -210,6 +219,18 @@ export class RevenueCatPaymentService {
         return false;
       }
       
+      // Handle invalid receipt error specifically
+      if (error.code === 'INVALID_RECEIPT' || error.message?.includes('receipt is not valid')) {
+        Alert.alert(
+          'Purchase Error', 
+          'There was an issue processing your purchase. Please try again later or contact support if the problem persists.',
+          [
+            { text: 'OK' }
+          ]
+        );
+        return false;
+      }
+      
       const errorMessage = error.message || 'There was an error processing your purchase.';
       Alert.alert('Purchase Error', errorMessage);
       return false;
@@ -218,7 +239,7 @@ export class RevenueCatPaymentService {
 
   // Handle purchase result
   private static async handlePurchaseResult(result: any): Promise<boolean> {
-    console.log('[RevenueCat] Purchase successful:', result);
+    // Purchase successful
     
     // Set flag to refresh profile
     await AsyncStorage.setItem('need_profile_refresh', 'true');
@@ -280,11 +301,7 @@ export class RevenueCatPaymentService {
           }
         }
         
-        console.log('[RevenueCat] Syncing to Supabase:', {
-          userId: session.user.id,
-          subscriptionStatus,
-          subscriptionEnd
-        });
+        // Syncing to Supabase
         
         // Update user profile in Supabase
         const { error } = await supabase
@@ -327,11 +344,11 @@ export class RevenueCatPaymentService {
   // Check current subscription status
   static async checkSubscriptionStatus(): Promise<boolean> {
     try {
-      console.log('[RevenueCat] Checking subscription status...');
+      // Checking subscription status
       const customerInfo = await Purchases.getCustomerInfo();
       
       const isPremium = this.hasActiveSubscription(customerInfo);
-      console.log('[RevenueCat] Subscription status:', isPremium ? 'Premium' : 'Free');
+      // Subscription status checked
       
       // Update local storage
       await AsyncStorage.setItem('is_premium', isPremium.toString());
@@ -390,6 +407,37 @@ export class RevenueCatPaymentService {
     } catch (error) {
       console.error('[RevenueCat] Error getting current subscription:', error);
       return null;
+    }
+  }
+
+  // Sync pending purchases - call this on app startup to clear stuck transactions
+  static async syncPendingPurchases() {
+    try {
+      // Syncing pending purchases
+      
+      // First, try to invalidate customer info cache
+      try {
+        await Purchases.invalidateCustomerInfoCache();
+        // Invalidated customer info cache
+      } catch (error) {
+        console.log('[RevenueCat] Could not invalidate cache:', error);
+      }
+      
+      // This will cause RevenueCat to sync with the App Store and finish any pending transactions
+      const syncResult = await Purchases.syncPurchases();
+      // Sync complete
+      
+      // Get the latest customer info after sync
+      const customerInfo = await Purchases.getCustomerInfo();
+      // Customer info synced
+      
+      // Process the updated customer info
+      await this.handleCustomerInfoUpdate(customerInfo);
+      
+      return true;
+    } catch (error) {
+      console.error('[RevenueCat] Error syncing purchases:', error);
+      return false;
     }
   }
 }
