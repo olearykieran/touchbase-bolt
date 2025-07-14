@@ -7,18 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0DE0FE64BE5C49B189A6AF5E /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF7A4BB61DE4F97AC11185F /* noop-file.swift */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		34861D21A82A96F7A1D3DDE2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B6EB4262AF7D404586ED396B /* PrivacyInfo.xcprivacy */; };
+		141D96A125C16F846AE655EB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B4246D2708C759CEAE8D6BC1 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		7939C09E7A794097838350E2 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA409412958247DFBF18300F /* noop-file.swift */; };
 		96905EF65AED1B983A6B3ABC /* libPods-KeepTouch.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-KeepTouch.a */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0EF7A4BB61DE4F97AC11185F /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "KeepTouch/noop-file.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* KeepTouch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeepTouch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = KeepTouch/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = KeepTouch/AppDelegate.mm; sourceTree = "<group>"; };
@@ -29,10 +30,9 @@
 		6C2E3173556A471DD304B334 /* Pods-KeepTouch.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KeepTouch.debug.xcconfig"; path = "Target Support Files/Pods-KeepTouch/Pods-KeepTouch.debug.xcconfig"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-KeepTouch.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KeepTouch.release.xcconfig"; path = "Target Support Files/Pods-KeepTouch/Pods-KeepTouch.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = KeepTouch/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B6EB4262AF7D404586ED396B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = KeepTouch/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B4246D2708C759CEAE8D6BC1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = KeepTouch/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D154C2D5B51F4BC8B5555480 /* KeepTouch-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "KeepTouch-Bridging-Header.h"; path = "KeepTouch/KeepTouch-Bridging-Header.h"; sourceTree = "<group>"; };
-		EA409412958247DFBF18300F /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "KeepTouch/noop-file.swift"; sourceTree = "<group>"; };
+		C98BBC12A1A94C03AEA37C5A /* KeepTouch-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "KeepTouch-Bridging-Header.h"; path = "KeepTouch/KeepTouch-Bridging-Header.h"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-KeepTouch/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -59,9 +59,9 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				EA409412958247DFBF18300F /* noop-file.swift */,
-				D154C2D5B51F4BC8B5555480 /* KeepTouch-Bridging-Header.h */,
-				B6EB4262AF7D404586ED396B /* PrivacyInfo.xcprivacy */,
+				0EF7A4BB61DE4F97AC11185F /* noop-file.swift */,
+				C98BBC12A1A94C03AEA37C5A /* KeepTouch-Bridging-Header.h */,
+				B4246D2708C759CEAE8D6BC1 /* PrivacyInfo.xcprivacy */,
 			);
 			name = KeepTouch;
 			sourceTree = "<group>";
@@ -147,14 +147,14 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "KeepTouch" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				D995736BF2DB7DBFD7226903 /* [Expo] Configure project */,
+				DCE8D8CEFECCDCB55713BD5B /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				E0D7D30ACBC24C5EAA760E97 /* Upload Debug Symbols to Sentry */,
-				D1B44E1A7890CD5B11309031 /* [CP] Embed Pods Frameworks */,
+				617460B97B2F443A92DBC894 /* Upload Debug Symbols to Sentry */,
+				EF3654BE4CF769F8CDA0BE7D /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -204,7 +204,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				34861D21A82A96F7A1D3DDE2 /* PrivacyInfo.xcprivacy in Resources */,
+				141D96A125C16F846AE655EB /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +247,20 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		617460B97B2F443A92DBC894 /* Upload Debug Symbols to Sentry */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Upload Debug Symbols to Sentry";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh `${NODE_BINARY:-node} --print \"require('path').dirname(require.resolve('@sentry/react-native/package.json')) + '/scripts/sentry-xcode-debug-files.sh'\"`";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -300,25 +314,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-KeepTouch/Pods-KeepTouch-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		D1B44E1A7890CD5B11309031 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-KeepTouch/Pods-KeepTouch-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-KeepTouch/Pods-KeepTouch-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		D995736BF2DB7DBFD7226903 /* [Expo] Configure project */ = {
+		DCE8D8CEFECCDCB55713BD5B /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -337,19 +333,23 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-KeepTouch/expo-configure-project.sh\"\n";
 		};
-		E0D7D30ACBC24C5EAA760E97 /* Upload Debug Symbols to Sentry */ = {
+		EF3654BE4CF769F8CDA0BE7D /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-KeepTouch/Pods-KeepTouch-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 			);
-			name = "Upload Debug Symbols to Sentry";
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh `${NODE_BINARY:-node} --print \"require('path').dirname(require.resolve('@sentry/react-native/package.json')) + '/scripts/sentry-xcode-debug-files.sh'\"`";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-KeepTouch/Pods-KeepTouch-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -361,7 +361,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				7939C09E7A794097838350E2 /* noop-file.swift in Sources */,
+				0DE0FE64BE5C49B189A6AF5E /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
