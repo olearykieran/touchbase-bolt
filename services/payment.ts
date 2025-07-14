@@ -349,10 +349,17 @@ export class PaymentService {
           console.log(`[PaymentService] Requesting purchase for product: ${productId}`);
           console.log(`[PaymentService] Available products:`, this.loadedProducts.map(p => ({ productId: p.productId, price: p.localizedPrice })));
           
-          // Request purchase - in v12, iOS uses just the sku string
-          const purchase = await IAP.requestPurchase(productId);
+          // Request subscription - for auto-renewable subscriptions, use requestSubscription
+          const purchaseResult = await IAP.requestSubscription({ sku: productId });
           
-          console.log('[PaymentService] Purchase result:', JSON.stringify(purchase));
+          console.log('[PaymentService] Purchase result:', JSON.stringify(purchaseResult));
+          
+          // requestSubscription can return an array, so handle both cases
+          const purchase = Array.isArray(purchaseResult) ? purchaseResult[0] : purchaseResult;
+          
+          if (!purchase) {
+            throw new Error('No purchase result returned');
+          }
           
           // Here we would validate the purchase with our backend
           // For now, we'll directly update the local flag to refresh on next focus

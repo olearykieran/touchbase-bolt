@@ -39,7 +39,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/ThemedText';
 import { PaymentService } from '@/services/payment';
 import { isSimulator } from '@/services/payment';
+import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
 import PaywallModal from '@/components/PaywallModal';
+import RevenueCatPaywallModal from '@/components/RevenueCatPaywallModal';
 import { IAPDebugPanel } from '@/components/IAPDebugPanel';
 import { SubscriptionDebugModal } from '@/components/SubscriptionDebugModal';
 
@@ -835,15 +837,15 @@ export default function SettingsScreen() {
       )}
     </ScrollView>
     
-    <PaywallModal
+    <RevenueCatPaywallModal
       visible={showPaywall}
       onClose={() => setShowPaywall(false)}
       onUpgrade={async (plan: 'monthly' | 'yearly') => {
         try {
-          const success = await PaymentService.purchaseSubscription(plan);
+          const success = await RevenueCatPaymentService.purchaseSubscription(plan);
           
           if (success) {
-            console.log(`${Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'} purchase initiated successfully`);
+            console.log(`RevenueCat purchase successful for ${plan} plan`);
             // Show success message
             Alert.alert(
               'Success!', 

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
 import { checkEnvironmentVariables } from '@/lib/envCheck';
 import { PaymentService } from '@/services/payment';
+import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
 import {
   Platform,
   Modal,
@@ -85,8 +86,9 @@ function RootLayoutNav({
   useEffect(() => {
     const initializePayment = async () => {
       try {
-        await PaymentService.initialize();
-        console.log('Payment service initialized');
+        // Initialize RevenueCat instead of react-native-iap
+        await RevenueCatPaymentService.initialize();
+        console.log('RevenueCat payment service initialized');
       } catch (error) {
         console.error('Error initializing payment service:', error);
         captureException(error);
