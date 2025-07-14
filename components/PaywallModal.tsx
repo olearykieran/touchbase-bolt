@@ -1,6 +1,7 @@
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform, ActivityIndicator } from 'react-native';
 import { useTheme } from './ThemeProvider';
+import { PaymentService } from '../services/payment';
 
 interface PaywallModalProps {
   visible: boolean;
@@ -9,8 +10,45 @@ interface PaywallModalProps {
   errorType?: 'messages' | 'contacts';
 }
 
+interface Product {
+  productId: string;
+  localizedPrice: string;
+  title: string;
+  description: string;
+}
+
 export default function PaywallModal({ visible, onClose, onUpgrade, errorType }: PaywallModalProps) {
   const { colors } = useTheme();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (visible) {
+      loadProducts();
+    }
+  }, [visible]);
+  
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const loadedProducts = await PaymentService.getProducts();
+      setProducts(loadedProducts);
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Unable to load subscription options');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const getProductPrice = (type: 'monthly' | 'yearly') => {
+    const product = products.find(p => 
+      p.productId.toLowerCase().includes(type)
+    );
+    return product?.localizedPrice || (type === 'monthly' ? '$2.99/mo' : '$12.99/yr');
+  };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -21,16 +59,30 @@ export default function PaywallModal({ visible, onClose, onUpgrade, errorType }:
               ? 'You have reached your free AI messages limit (3/week). Upgrade to send unlimited messages.'
               : 'You have reached your free contacts limit (3 contacts). Upgrade to add unlimited contacts.'}
           </Text>
-          <View style={styles.plans}>
-            <TouchableOpacity style={[styles.planButton, { backgroundColor: colors.accent }]} onPress={() => onUpgrade('monthly')}>
-              <Text style={styles.planTitle}>$2.99/mo</Text>
-              <Text style={styles.planDesc}>Unlimited AI messages & contacts</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.planButton, { backgroundColor: colors.accent }]} onPress={() => onUpgrade('yearly')}>
-              <Text style={styles.planTitle}>$12.99/yr</Text>
-              <Text style={styles.planDesc}>Save 64% vs monthly</Text>
-            </TouchableOpacity>
-          </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={[styles.loadingText, { color: colors.secondaryText }]}>Loading subscription options...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+              <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.accent }]} onPress={loadProducts}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.plans}>
+              <TouchableOpacity style={[styles.planButton, { backgroundColor: colors.accent }]} onPress={() => onUpgrade('monthly')}>
+                <Text style={styles.planTitle}>{getProductPrice('monthly')}</Text>
+                <Text style={styles.planDesc}>Unlimited AI messages & contacts</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.planButton, { backgroundColor: colors.accent }]} onPress={() => onUpgrade('yearly')}>
+                <Text style={styles.planTitle}>{getProductPrice('yearly')}</Text>
+                <Text style={styles.planDesc}>Save 64% vs monthly</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={[styles.closeText, { color: colors.accent }]}>Not now</Text>
           </TouchableOpacity>
@@ -100,5 +152,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

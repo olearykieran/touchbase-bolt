@@ -26,6 +26,8 @@ export class PaymentService {
   static isIAPAvailable = false;
   static purchaseUpdateSubscription: any = null;
   static purchaseErrorSubscription: any = null;
+  static loadedProducts: any[] = [];
+  static productsLoaded = false;
 
   // Initialize IAP on app startup
   static async initialize() {
@@ -47,6 +49,16 @@ export class PaymentService {
           skus: [IOS_MONTHLY_PRODUCT_ID, IOS_YEARLY_PRODUCT_ID],
         });
         console.log(`[PaymentService] Loaded ${products.length} products:`, products.map(p => p.productId));
+        this.loadedProducts = products;
+        this.productsLoaded = products.length > 0;
+        
+        if (products.length === 0) {
+          console.warn('[PaymentService] Warning: No products loaded from App Store. This usually means:');
+          console.warn('1. Products are not properly configured in App Store Connect');
+          console.warn('2. Products have "Developer Action Needed" status');
+          console.warn('3. Products are rejected and need to be resubmitted');
+          console.warn('4. Bundle ID mismatch between app and App Store Connect');
+        }
         
         // Clear any pending transactions from previous sessions
         console.log('[PaymentService] Checking for pending transactions...');
@@ -123,6 +135,33 @@ export class PaymentService {
     }
   }
 
+  // Ensure products are loaded
+  static async ensureProductsLoaded() {
+    if (Platform.OS !== 'ios' || this.productsLoaded || isSimulator()) {
+      return true;
+    }
+    
+    try {
+      console.log('[PaymentService] Products not loaded, attempting to load...');
+      const products = await IAP.getProducts({
+        skus: [IOS_MONTHLY_PRODUCT_ID, IOS_YEARLY_PRODUCT_ID],
+      });
+      
+      if (products && products.length > 0) {
+        this.loadedProducts = products;
+        this.productsLoaded = true;
+        console.log(`[PaymentService] Successfully loaded ${products.length} products`);
+        return true;
+      } else {
+        console.error('[PaymentService] No products returned from getProducts');
+        return false;
+      }
+    } catch (error) {
+      console.error('[PaymentService] Error loading products:', error);
+      return false;
+    }
+  }
+
   // Get available products (IAP or Stripe depending on platform)
   static async getProducts() {
     if (Platform.OS === 'ios') {
@@ -150,9 +189,23 @@ export class PaymentService {
           ];
         }
         
+        // Return cached products if available
+        if (this.productsLoaded && this.loadedProducts.length > 0) {
+          console.log('[PaymentService] Returning cached products');
+          return this.loadedProducts;
+        }
+        
+        // Otherwise, load products
         const products = await IAP.getProducts({
           skus: [IOS_MONTHLY_PRODUCT_ID, IOS_YEARLY_PRODUCT_ID],
         });
+        
+        // Cache the products
+        if (products && products.length > 0) {
+          this.loadedProducts = products;
+          this.productsLoaded = true;
+        }
+        
         return products;
       } catch (error) {
         console.error('Error loading products:', error);
@@ -258,8 +311,43 @@ export class PaymentService {
           }
         }
         
+        // Ensure products are loaded before attempting purchase
+        const productsLoaded = await this.ensureProductsLoaded();
+        if (!productsLoaded) {
+          Alert.alert(
+            'Error',
+            'Unable to load products from the App Store. Please check your internet connection and try again.',
+            [{ text: 'OK' }]
+          );
+          return false;
+        }
+        
+        // Check if NO products were loaded at all (likely App Store Connect issue)
+        if (this.loadedProducts.length === 0) {
+          console.error('[PaymentService] No products loaded - likely App Store Connect configuration issue');
+          Alert.alert(
+            'Subscription Setup Required',
+            'Subscriptions are not yet available. The developer needs to complete setup in App Store Connect.\n\nStatus: Products need to be configured and approved.',
+            [{ text: 'OK' }]
+          );
+          return false;
+        }
+        
+        // Verify the specific product exists
+        const productExists = this.loadedProducts.some(p => p.productId === productId);
+        if (!productExists) {
+          console.error(`[PaymentService] Product ${productId} not found in loaded products:`, this.loadedProducts.map(p => p.productId));
+          Alert.alert(
+            'Error',
+            'The selected subscription is not available. Please try again later.',
+            [{ text: 'OK' }]
+          );
+          return false;
+        }
+        
         try {
           console.log(`[PaymentService] Requesting purchase for product: ${productId}`);
+          console.log(`[PaymentService] Available products:`, this.loadedProducts.map(p => ({ productId: p.productId, price: p.localizedPrice })));
           
           // Request purchase - in v12, iOS uses just the sku string
           const purchase = await IAP.requestPurchase(productId);
@@ -366,7 +454,12 @@ export class PaymentService {
           
           // More specific error messages
           let errorMessage = 'There was an error processing your purchase. Please try again.';
-          if (error.code === 'E_UNKNOWN') {
+          
+          // Handle specific error types
+          if (error.message && error.message.includes('right operand of \'in\' is not an object')) {
+            errorMessage = 'Unable to connect to the App Store. Please ensure you are signed in to the App Store and try again.';
+            console.error('[PaymentService] IAP not properly initialized or products not loaded');
+          } else if (error.code === 'E_UNKNOWN') {
             errorMessage = 'Purchase failed. Please check your payment method and try again.';
           } else if (error.code === 'E_USER_CANCELLED') {
             errorMessage = 'Purchase cancelled.';
@@ -374,6 +467,12 @@ export class PaymentService {
             errorMessage = 'This subscription is not available. Please try again later.';
           } else if (error.code === 'E_NETWORK_ERROR') {
             errorMessage = 'Network error. Please check your connection and try again.';
+          } else if (error.code === 'E_DEFERRED') {
+            errorMessage = 'Purchase is pending approval. You will be notified when it\'s complete.';
+          } else if (error.code === 'E_ALREADY_OWNED') {
+            errorMessage = 'You already own this subscription.';
+          } else if (error.code === 'E_DEVELOPER_ERROR') {
+            errorMessage = 'Configuration error. Please contact support.';
           }
           
           Alert.alert('Purchase Error', errorMessage);
