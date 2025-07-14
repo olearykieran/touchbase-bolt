@@ -6,7 +6,7 @@ import Purchases, {
   PurchasesEntitlementInfo 
 } from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
 
 // RevenueCat API Key - from your RevenueCat dashboard
 const REVENUECAT_API_KEY = 'appl_uQuEWLwAuYjhYWhtEmNbarnyiob';
