@@ -43,13 +43,8 @@ export class RevenueCatPaymentService {
         await this.handleCustomerInfoUpdate(info);
       });
 
-      // Identify user with Supabase user ID if logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        await this.loginUser(session.user.id);
-      }
-
-      // Check subscription status
+      // Don't use logIn - just check subscription status
+      // This matches the working app's approach
       await this.checkSubscriptionStatus();
       
     } catch (error) {
@@ -57,43 +52,92 @@ export class RevenueCatPaymentService {
     }
   }
 
-  // Login user to RevenueCat
+  // Login user to RevenueCat - DISABLED to match working app pattern
+  // The working app doesn't use logIn and it works fine
   static async loginUser(userId: string) {
-    try {
-      console.log('[RevenueCat] Logging in user:', userId);
-      await Purchases.logIn(userId);
-    } catch (error) {
-      console.error('[RevenueCat] Login error:', error);
-    }
+    // Do nothing - just keep method for compatibility
+    console.log('[RevenueCat] Skipping login (not needed)');
   }
 
   // Get available products
   static async getProducts() {
     try {
       console.log('[RevenueCat] Fetching offerings...');
-      const offerings = await Purchases.getOfferings();
       
+      // Ensure RevenueCat is configured
+      if (!this.isConfigured) {
+        console.error('[RevenueCat] SDK not configured. Call initialize() first.');
+        return [];
+      }
+      
+      const offerings = await Purchases.getOfferings();
+      console.log('[RevenueCat] Raw offerings response:', JSON.stringify(offerings, null, 2));
+      
+      // Check if we have a current offering
       if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
         this.offerings = offerings.current;
-        console.log('[RevenueCat] Available packages:', offerings.current.availablePackages.map(p => ({
-          identifier: p.identifier,
-          product: p.storeProduct.identifier,
-          price: p.storeProduct.priceString
-        })));
+        console.log('[RevenueCat] Current offering:', offerings.current.identifier);
+        console.log('[RevenueCat] Available packages count:', offerings.current.availablePackages.length);
         
-        return offerings.current.availablePackages.map(pkg => ({
-          productId: pkg.storeProduct.identifier,
-          title: pkg.storeProduct.title,
-          description: pkg.storeProduct.description,
-          price: pkg.storeProduct.price.toString(),
-          currency: pkg.storeProduct.currencyCode || 'USD',
-          localizedPrice: pkg.storeProduct.priceString,
-          packageType: pkg.packageType,
-          identifier: pkg.identifier
-        }));
+        // Safely map packages with better error handling
+        const mappedPackages = offerings.current.availablePackages.map(pkg => {
+          try {
+            console.log('[RevenueCat] Processing package:', pkg.identifier);
+            
+            // Check if storeProduct exists
+            if (!pkg.storeProduct) {
+              console.error('[RevenueCat] Package missing storeProduct:', pkg);
+              return null;
+            }
+            
+            return {
+              productId: pkg.storeProduct.identifier,
+              title: pkg.storeProduct.title,
+              description: pkg.storeProduct.description,
+              price: pkg.storeProduct.price.toString(),
+              currency: pkg.storeProduct.currencyCode || 'USD',
+              localizedPrice: pkg.storeProduct.priceString,
+              packageType: pkg.packageType,
+              identifier: pkg.identifier
+            };
+          } catch (error) {
+            console.error('[RevenueCat] Error processing package:', pkg.identifier, error);
+            return null;
+          }
+        }).filter(Boolean); // Remove any null entries
+        
+        console.log('[RevenueCat] Mapped packages:', mappedPackages);
+        return mappedPackages;
       }
       
       console.warn('[RevenueCat] No offerings available');
+      
+      // Fallback: Try to get products directly (for apps without offerings configured)
+      try {
+        console.log('[RevenueCat] Attempting to fetch products directly...');
+        const products = await Purchases.getProducts([
+          'com.holygrailstudio.boltexponativewind.monthlysub',
+          'com.holygrailstudio.boltexponativewind.yearlysub'
+        ]);
+        
+        console.log('[RevenueCat] Direct products fetch result:', products);
+        
+        if (products.length > 0) {
+          return products.map(product => ({
+            productId: product.identifier,
+            title: product.title,
+            description: product.description,
+            price: product.price.toString(),
+            currency: product.currencyCode || 'USD',
+            localizedPrice: product.priceString,
+            packageType: null,
+            identifier: product.identifier
+          }));
+        }
+      } catch (error) {
+        console.error('[RevenueCat] Error fetching products directly:', error);
+      }
+      
       return [];
     } catch (error) {
       console.error('[RevenueCat] Error fetching products:', error);
@@ -112,43 +156,55 @@ export class RevenueCatPaymentService {
       // Get the offerings if we don't have them
       if (!this.offerings) {
         const offerings = await Purchases.getOfferings();
-        if (!offerings.current) {
-          Alert.alert('Error', 'No subscription plans available.');
-          return false;
-        }
         this.offerings = offerings.current;
       }
 
-      // Find the package based on the plan
-      // You'll need to set up these package identifiers in RevenueCat dashboard
-      const packageIdentifier = plan === 'monthly' ? '$rc_monthly' : '$rc_annual';
-      const packageToPurchase = this.offerings.availablePackages.find(
-        pkg => pkg.identifier === packageIdentifier
-      );
-
-      if (!packageToPurchase) {
-        // Fallback: try to find by product ID
-        const productId = plan === 'monthly' 
-          ? 'com.holygrailstudio.boltexponativewind.monthlysub'
-          : 'com.holygrailstudio.boltexponativewind.yearlysub';
+      // If we have offerings, try to find the package
+      if (this.offerings && this.offerings.availablePackages.length > 0) {
+        // Find package using flexible logic like the working app
+        let packageToPurchase;
         
-        const fallbackPackage = this.offerings.availablePackages.find(
-          pkg => pkg.storeProduct.identifier === productId
-        );
-
-        if (!fallbackPackage) {
-          Alert.alert('Error', `${plan} subscription plan not found.`);
-          return false;
+        if (plan === 'monthly') {
+          packageToPurchase = this.offerings.availablePackages.find(
+            pkg => pkg.packageType === 'MONTHLY' ||
+                   pkg.identifier === '$rc_monthly' ||
+                   pkg.identifier === 'monthly' ||
+                   pkg.storeProduct.identifier.includes('monthly')
+          );
+        } else {
+          packageToPurchase = this.offerings.availablePackages.find(
+            pkg => pkg.packageType === 'ANNUAL' ||
+                   pkg.identifier === '$rc_annual' ||
+                   pkg.identifier === 'annual' ||
+                   pkg.storeProduct.identifier.includes('yearly') ||
+                   pkg.storeProduct.identifier.includes('annual')
+          );
         }
 
-        console.log('[RevenueCat] Using fallback package:', fallbackPackage.identifier);
-        const result = await Purchases.purchasePackage(fallbackPackage);
-        return await this.handlePurchaseResult(result);
+        if (packageToPurchase) {
+          console.log('[RevenueCat] Purchasing package:', packageToPurchase.identifier);
+          console.log('[RevenueCat] Product:', packageToPurchase.storeProduct.identifier);
+          const result = await Purchases.purchasePackage(packageToPurchase);
+          return await this.handlePurchaseResult(result);
+        }
       }
-
-      console.log('[RevenueCat] Purchasing package:', packageIdentifier);
-      const result = await Purchases.purchasePackage(packageToPurchase);
-      return await this.handlePurchaseResult(result);
+      
+      // No offerings available - try direct product purchase
+      console.log('[RevenueCat] No offerings - attempting direct product purchase');
+      const productId = plan === 'monthly' 
+        ? 'com.holygrailstudio.boltexponativewind.monthlysub'
+        : 'com.holygrailstudio.boltexponativewind.yearlysub';
+      
+      try {
+        const result = await Purchases.purchaseProduct(productId);
+        return await this.handlePurchaseResult(result);
+      } catch (error: any) {
+        if (error.userCancelled) {
+          console.log('[RevenueCat] User cancelled purchase');
+          return false;
+        }
+        throw error;
+      }
 
     } catch (error: any) {
       console.error('[RevenueCat] Purchase error:', error);
