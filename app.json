@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
-      "buildNumber": "34",
+      "buildNumber": "35",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.",
