@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { checkEnvironmentVariables } from '@/lib/envCheck';
 import { PaymentService } from '@/services/payment';
 import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
+import { facebookAds } from '@/services/facebookAds';
 import {
   Platform,
   Modal,
@@ -117,6 +118,21 @@ function RootLayoutNav({
         console.error('Error ending StoreKit connection:', err);
       });
     };
+  }, []);
+
+  // Initialize Facebook SDK
+  useEffect(() => {
+    const initFacebookSDK = async () => {
+      try {
+        await facebookAds.initialize();
+        await facebookAds.trackAppActivation();
+      } catch (error) {
+        console.error('Error initializing Facebook SDK:', error);
+        captureException(error);
+      }
+    };
+
+    initFacebookSDK();
   }, []);
 
   // Get user session

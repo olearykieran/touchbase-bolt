@@ -28,6 +28,7 @@ import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import React from 'react';
 import { useTheme, ThemeType } from '../../components/ThemeProvider';
+import { facebookAds } from '@/services/facebookAds';
 import {
   registerForPushNotificationsAsync,
   scheduleNotificationsForContacts,
@@ -166,6 +167,10 @@ export default function SettingsScreen() {
     if (Platform.OS !== 'web') {
       // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
     }
+    
+    // Clear Facebook user data before signing out
+    await facebookAds.clearUserData();
+    
     await supabase.auth.signOut();
   };
 
@@ -205,7 +210,8 @@ export default function SettingsScreen() {
                 throw new Error(errorData.error || 'Failed to delete account.');
               }
 
-              // Log out and redirect
+              // Clear Facebook data and log out
+              await facebookAds.clearUserData();
               await supabase.auth.signOut();
               router.replace('/');
             } catch (error: any) {
@@ -847,6 +853,11 @@ export default function SettingsScreen() {
           
           if (success) {
             console.log(`RevenueCat purchase successful for ${plan} plan`);
+            
+            // Track purchase in Facebook Ads
+            const amount = plan === 'monthly' ? 2.99 : 12.99;
+            await facebookAds.trackPurchase(amount, 'USD', plan);
+            
             // Show success message
             Alert.alert(
               'Success!', 

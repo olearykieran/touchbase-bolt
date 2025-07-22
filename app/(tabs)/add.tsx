@@ -20,6 +20,7 @@ import PaywallModal from '../../components/PaywallModal';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 import { PaymentService } from '@/services/payment';
+import { facebookAds } from '@/services/facebookAds';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -220,6 +221,11 @@ export default function AddContactScreen() {
             Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'
           } purchase initiated successfully`
         );
+        
+        // Track purchase in Facebook Ads
+        const amount = plan === 'monthly' ? 2.99 : 12.99;
+        await facebookAds.trackPurchase(amount, 'USD', plan);
+        
         // Show success message
         Alert.alert(
           'Success!', 

@@ -6,6 +6,7 @@ import Purchases, {
 } from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { facebookAds } from './facebookAds';
 
 // RevenueCat API Key - from your RevenueCat dashboard
 const REVENUECAT_API_KEY = 'appl_uQuEWLwAuYjhYWhtEmNbarnyiob';
@@ -240,6 +241,27 @@ export class RevenueCatPaymentService {
   // Handle purchase result
   private static async handlePurchaseResult(result: any): Promise<boolean> {
     // Purchase successful
+    
+    // Track purchase in Facebook Ads
+    try {
+      // Determine the plan type and amount from the product identifier
+      const productId = result.productIdentifier || result.product?.identifier;
+      let plan: 'monthly' | 'yearly' = 'monthly';
+      let amount = 2.99;
+      
+      if (productId) {
+        if (productId.includes('yearly') || productId.includes('annual')) {
+          plan = 'yearly';
+          amount = 12.99;
+        }
+      }
+      
+      // Track the purchase event
+      await facebookAds.trackPurchase(amount, 'USD', plan);
+      console.log('[RevenueCat] Facebook purchase event tracked:', { plan, amount });
+    } catch (error) {
+      console.error('[RevenueCat] Error tracking Facebook purchase event:', error);
+    }
     
     // Set flag to refresh profile
     await AsyncStorage.setItem('need_profile_refresh', 'true');

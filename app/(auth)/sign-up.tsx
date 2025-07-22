@@ -19,6 +19,7 @@ import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
 import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
+import { facebookAds } from '@/services/facebookAds';
 
 function SignUpInner() {
   const [email, setEmail] = useState('');
@@ -54,11 +55,20 @@ function SignUpInner() {
     setError(null);
     setSuccess(false);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
       });
       if (error) throw error;
+      
+      // Track successful registration with Facebook
+      await facebookAds.trackRegistration('email');
+      
+      // Set user data for better ad targeting
+      if (data.user) {
+        await facebookAds.setUserData(data.user.id, email);
+      }
+      
       setSuccess(true);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'An error occurred';

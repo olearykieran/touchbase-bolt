@@ -2,7 +2,7 @@
   "expo": {
     "name": "KeepTouch",
     "slug": "bolt-expo-nativewind",
-    "version": "1.6",
+    "version": "1.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "touchbasebolt",
@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
-      "buildNumber": "36",
+      "buildNumber": "37",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSContactsUsageDescription": "KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.",
@@ -69,7 +69,21 @@
         }
       ],
       "expo-updates",
-      "react-native-iap"
+      "react-native-iap",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "726780603465450",
+          "clientToken": "239d9475c26e42921cf4686f96d8b3fc",
+          "displayName": "KeepTouch",
+          "scheme": "fb726780603465450",
+          "advertiserIDCollectionEnabled": true,
+          "autoLogAppEventsEnabled": true,
+          "isAutoInitEnabled": true,
+          "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+        }
+      ],
+      "expo-tracking-transparency"
     ],
     "experiments": {
       "typedRoutes": true

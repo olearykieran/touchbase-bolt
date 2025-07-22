@@ -20,6 +20,7 @@ import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
 import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
+import { facebookAds } from '@/services/facebookAds';
 
 function SignInInner() {
   const [email, setEmail] = useState('');
@@ -51,11 +52,16 @@ function SignInInner() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+      
+      // Set user data for better ad targeting after successful sign-in
+      if (data.user) {
+        await facebookAds.setUserData(data.user.id, email);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
