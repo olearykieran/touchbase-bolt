@@ -153,9 +153,14 @@ export default function ContactPickerModal({
               <User size={48} color="#666" />
               <Text style={styles.emptyText}>
                 {searchQuery.length < 2
-                  ? 'Type to search contacts'
+                  ? 'Start typing a contact name to search'
                   : 'No contacts found'}
               </Text>
+              {searchQuery.length < 2 && (
+                <Text style={styles.helpText}>
+                  Type at least 2 characters to begin searching
+                </Text>
+              )}
             </View>
           ) : (
             <FlatList
@@ -250,6 +255,12 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     marginTop: 16,
+    textAlign: 'center',
+  },
+  helpText: {
+    color: '#999',
+    fontSize: 14,
+    marginTop: 8,
     textAlign: 'center',
   },
 });

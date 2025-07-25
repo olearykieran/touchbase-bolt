@@ -14,6 +14,7 @@ import {
   ScrollView,
   Image,
   Animated,
+  Alert,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
@@ -157,6 +158,39 @@ function SignInInner() {
                 Don't have an account? Create one
               </ThemedText>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={async () => {
+                if (!email) {
+                  setError('Please enter your email first');
+                  return;
+                }
+                setLoading(true);
+                setError(null);
+                try {
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: 'com.holygrailstudio.boltexponativewind://reset-password',
+                  });
+                  if (error) throw error;
+                  Alert.alert(
+                    'Check your email',
+                    'We sent you a password reset link. Please check your email.',
+                    [{ text: 'OK' }]
+                  );
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'An error occurred');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+            >
+              <ThemedText
+                style={[styles.forgotPasswordText, { color: colors.secondaryText }]}
+              >
+                Forgot Password?
+              </ThemedText>
+            </TouchableOpacity>
           </View>
           <View style={styles.logoContainer}>
             {!logoReady ? (
@@ -290,5 +324,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
     letterSpacing: 1.2,
+  },
+  forgotPasswordButton: {
+    padding: 12,
+    alignItems: 'center',
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

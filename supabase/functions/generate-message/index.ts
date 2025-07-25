@@ -10,7 +10,14 @@ interface MessageRequest {
     frequency: string;
   };
   lastMessage?: string;
-  messageType?: 'default' | 'love' | 'gratitude' | 'custom' | 'birthday' | 'joke' | 'fact';
+  messageType?:
+    | 'default'
+    | 'love'
+    | 'gratitude'
+    | 'custom'
+    | 'birthday'
+    | 'joke'
+    | 'fact';
   customPrompt?: string;
 }
 
@@ -23,19 +30,19 @@ const corsHeaders = {
 const getSystemPrompt = (messageType: string) => {
   switch (messageType) {
     case 'love':
-      return 'You are writing a brief, heartfelt message expressing appreciation and love. Keep it genuine and warm, but limit it to 2-3 sentences max.';
+      return 'You are writing a brief, heartfelt message expressing appreciation and love. Keep it genuine and warm, but limit it to 2-3 sentences max. Each message should feel fresh and personal.';
     case 'gratitude':
-      return 'You are creating a simple list of 10 random things to be grateful for. Each item must be 5 words or less, starting with "I\'m grateful for..."';
+      return 'You are helping someone reflect on real, relatable things to be grateful for. Generate diverse, genuine items that real people actually appreciate in daily life. Balance between common comforts and unique moments, but keep them grounded and authentic. Avoid overly poetic or abstract items.';
     case 'custom':
-      return 'You are writing a personalized message based on a specific prompt. Keep it natural and concise, limited to 4-5 sentences max.';
+      return 'You are writing a personalized message based on a specific prompt. Keep it natural and concise, limited to 4-5 sentences max. Make each response unique and tailored.';
     case 'birthday':
-      return 'You are writing a warm and cheerful birthday message. Keep it celebratory and personal, with a mix of well-wishes and appreciation. Limit it to 3-4 sentences max.';
+      return 'You are writing a warm and cheerful birthday message. Keep it celebratory and personal, with a mix of well-wishes and appreciation. Limit it to 3-4 sentences max. Make each birthday wish unique and memorable.';
     case 'joke':
-      return 'You are a witty comedian. Tell a short, clean, and generally funny joke suitable for a text message. Keep it brief (1-3 sentences). Avoid controversial topics.';
+      return 'You are an innovative comedian with access to infinite humor styles. Your jokes should be unexpected, clever, and delightfully surprising. Each joke must be completely original - never repeat structures, topics, or punchlines. Push creative boundaries while staying family-friendly.';
     case 'fact':
-      return 'You are a knowledgeable source. Provide one interesting, concise, and easily understandable random fact. Keep it brief (1-3 sentences). Ensure it\'s generally appropriate and verifiable.';
+      return "You are a curator of mind-blowing knowledge from across all domains of human understanding. Each fact you share should make people's eyes widen with wonder. Draw from the most unexpected corners of science, history, and culture. Never repeat similar categories or themes.";
     default:
-      return 'You are writing a casual, friendly catch-up text message, like a real person would. Keep it brief (1-2 sentences), warm, and natural-sounding. Avoid sounding like an AI. Vary the phrasing.';
+      return 'You are writing a casual, friendly catch-up text message, like a real person would. Keep it brief (1-2 sentences), warm, and natural-sounding. Each message should have a different tone and approach - sometimes questioning, sometimes sharing, sometimes just saying hi.';
   }
 };
 
@@ -47,12 +54,27 @@ const getPrompt = (
 ) => {
   // Extract first name (handle cases with no spaces)
   const firstName = contact.name?.split(' ')[0] || contact.name || 'there';
+  
+  // Add time-based context for variety
+  const now = new Date();
+  const hour = now.getHours();
+  const month = now.getMonth();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const season = month < 3 ? 'winter' : month < 6 ? 'spring' : month < 9 ? 'summer' : 'fall';
 
+  // Add randomization seed for maximum variation
+  const randomSeed = Math.floor(Math.random() * 1000000);
+  const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+  
   const baseContext = `
 Context about ${firstName}:
 - Last contacted: ${contact.lastContact}
 - Contact frequency: ${contact.frequency}
-- Previous message (if any): ${lastMessage || 'None'}`;
+- Previous message (if any): ${lastMessage || 'None'}
+- Current time: ${timeOfDay}
+- Current season: ${season}
+- Day: ${dayOfWeek}
+- Random seed: ${randomSeed} (use this to ensure unique responses)`;
 
   switch (messageType) {
     case 'love':
@@ -70,16 +92,23 @@ Guidelines:
       return `Create a simple list of 10 random things to be grateful for.
 ${baseContext}
 
-Guidelines:
+INSTRUCTIONS FOR REALISTIC VARIETY:
+- Generate a COMPLETELY UNIQUE list each time - never repeat items
+- Focus on REAL things people genuinely appreciate in daily life
+- Mix everyday comforts with specific moments, but keep them relatable
+- Categories to draw from: daily routines, simple pleasures, technology that works, nature moments, food experiences, human connections, small conveniences, seasonal joys, physical comforts, emotional relief
+- Be specific but not overly poetic (e.g., "hot shower after work" not "crystalline water cascades")
+- Include both common appreciations and unique personal moments
+- Think about what actually makes people's days better
+- Balance between material things, experiences, and feelings
+- Keep it genuine - things that would make someone nod and say "yes, that IS nice"
+
+Format requirements:
 - Each item MUST be 5 words or less
 - Start each item with "I'm grateful for..."
-- Keep it simple and universal
-- No long explanations
 - Format as a numbered list
-- Example format:
-1. I'm grateful for warm sunshine
-2. I'm grateful for morning coffee
-etc.`;
+- Keep items concrete and relatable
+- Avoid abstract poetry - be real`;
 
     case 'birthday':
       return `Write a birthday message to ${firstName}.
@@ -108,19 +137,46 @@ Guidelines:
       return `Tell ${firstName} a short, clean joke suitable for a text message.
 ${baseContext}
 
-Guidelines:
-- Keep it brief (1-3 sentences).
-- Make it generally funny and lighthearted.
-- Avoid complex or niche humor.`;
+CRITICAL CREATIVITY INSTRUCTIONS:
+- Generate a COMPLETELY ORIGINAL joke each time - surprise me!
+- Draw from the infinite well of humor: absurdist, observational, wordplay, puns, anti-jokes, surreal, meta-humor
+- Mix unexpected topics: quantum physics meets cooking, philosophy meets pets, history meets modern tech
+- Play with format: one-liners, Q&A, story jokes, anti-jokes, breaking the fourth wall
+- Be unpredictable - if you think of an obvious joke, skip it and go weirder
+- Combine unrelated concepts for surprising punchlines
+- Use specific details instead of generic setups
+- Think laterally - the best jokes come from unexpected connections
+- Consider cultural references, science, arts, everyday absurdities
+- MOST IMPORTANT: Each joke must be totally different in structure, topic, and style from any previous joke
+
+Requirements:
+- Keep it brief (1-3 sentences)
+- Family-friendly and lighthearted
+- Make it genuinely surprising and delightful
+- NO OVERUSED FORMATS - be original!`;
 
     case 'fact':
       return `Share an interesting random fact with ${firstName}.
 ${baseContext}
 
-Guidelines:
-- Keep it brief (1-3 sentences).
-- Ensure the fact is concise and easy to understand.
-- Aim for widely interesting topics (science, history, nature, etc.).`;
+MAXIMUM VARIATION INSTRUCTIONS:
+- Each fact must be COMPLETELY DIFFERENT - topic, field, time period, scale
+- Randomly select from infinite knowledge domains: quantum mechanics, ancient civilizations, deep ocean, distant galaxies, microscopic life, future predictions, cultural oddities, linguistic quirks, mathematical paradoxes, biological mysteries
+- Mix scales wildly: subatomic to cosmic, nanoseconds to millennia, microscopic to planetary
+- Include facts that challenge assumptions or reveal hidden connections
+- Draw from cutting-edge research, historical mysteries, natural phenomena, human achievements
+- Combine unexpected elements: "Did you know [unexpected thing] is related to [seemingly unrelated thing]?"
+- Be specific with numbers, dates, locations when possible
+- Choose facts that make people go "Wait, really?!"
+- Consider facts about processes, not just objects
+- Include facts from non-Western cultures and lesser-known fields
+- CRITICAL: Never repeat similar categories or themes - maximum diversity!
+
+Format:
+- Keep it brief (1-3 sentences)
+- Make it mind-blowing yet believable
+- Include specific details that add credibility
+- End with impact - leave them thinking!`;
 
     default:
       return `Write a casual, friendly catch-up text message to ${firstName}.
@@ -156,7 +212,10 @@ serve(async (req: Request) => {
       throw new Error('No authorization header');
     }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser(token);
     if (userError || !user) {
       throw new Error('Authentication failed');
     }
@@ -170,7 +229,9 @@ serve(async (req: Request) => {
 
     const { data: profile, error: profileError } = await supabaseAdminClient
       .from('profiles')
-      .select('subscription_status, subscription_end, weekly_message_count, last_message_reset')
+      .select(
+        'subscription_status, subscription_end, weekly_message_count, last_message_reset'
+      )
       .eq('id', user.id)
       .single();
 
@@ -179,14 +240,15 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: 'Failed to get user profile',
-          details: profileError.message
+          details: profileError.message,
         }),
         { status: 400 }
       );
     }
 
     console.log('User profile:', profile);
-    const isFreeTier = !profile.subscription_status || profile.subscription_status === 'free';
+    const isFreeTier =
+      !profile.subscription_status || profile.subscription_status === 'free';
     const now = new Date();
 
     console.log('Complete profile data:', profile);
@@ -198,7 +260,9 @@ serve(async (req: Request) => {
     if (isFreeTier) {
       if (profile.last_message_reset) {
         const lastReset = new Date(profile.last_message_reset);
-        const daysSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24));
+        const daysSinceReset = Math.floor(
+          (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24)
+        );
 
         console.log('Days since last message reset:', daysSinceReset);
 
@@ -230,13 +294,17 @@ serve(async (req: Request) => {
         }
       }
 
-      console.log('Checking message quota. Current count:', weekly_message_count);
+      console.log(
+        'Checking message quota. Current count:',
+        weekly_message_count
+      );
       if (weekly_message_count >= 3) {
         console.log('Free tier message quota exceeded');
         return new Response(
           JSON.stringify({
             error: 'PaymentRequiredError',
-            details: 'Free tier limited to 3 AI messages per week. Subscribe to unlock more.',
+            details:
+              'Free tier limited to 3 AI messages per week. Subscribe to unlock more.',
           }),
           {
             status: 402,
@@ -294,7 +362,7 @@ serve(async (req: Request) => {
     let completionResponse;
     try {
       completionResponse = await openai.chat.completions.create({
-        model: 'gpt-4.1-nano',
+        model: 'gpt-4.1',
         messages: [
           {
             role: 'system',
@@ -306,14 +374,25 @@ serve(async (req: Request) => {
           },
         ],
         max_tokens: messageType === 'gratitude' ? 500 : 250,
-        temperature: messageType === 'custom' ? 0.8 : 0.7,
-        presence_penalty: 0.6,
-        frequency_penalty: 0.6,
+        temperature: 
+          messageType === 'joke' ? 1.0 :
+          messageType === 'gratitude' ? 0.88 :
+          messageType === 'fact' ? 0.9 :
+          messageType === 'custom' ? 0.8 : 
+          0.75,
+        presence_penalty: messageType === 'joke' || messageType === 'fact' ? 0.8 : messageType === 'gratitude' ? 0.7 : 0.6,
+        frequency_penalty: messageType === 'joke' || messageType === 'fact' ? 0.7 : messageType === 'gratitude' ? 0.5 : 0.5,
       });
     } catch (error) {
       const err = error as Error;
       console.error('OpenAI API Error:', err.message);
-      return new Response(JSON.stringify({ error: 'Failed to generate message', details: err.message }), { status: 500 });
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to generate message',
+          details: err.message,
+        }),
+        { status: 500 }
+      );
     }
 
     console.log('OpenAI Response:', {
@@ -334,14 +413,22 @@ serve(async (req: Request) => {
     });
 
     if (isFreeTier) {
-      console.log('Incrementing weekly message count from', weekly_message_count, 'to', weekly_message_count + 1);
+      console.log(
+        'Incrementing weekly message count from',
+        weekly_message_count,
+        'to',
+        weekly_message_count + 1
+      );
       try {
         const { error: updateError } = await supabaseAdminClient
           .from('profiles')
           .update({ weekly_message_count: weekly_message_count + 1 })
           .eq('id', user.id);
         if (updateError) {
-          console.error('Failed to increment weekly_message_count:', updateError);
+          console.error(
+            'Failed to increment weekly_message_count:',
+            updateError
+          );
         }
       } catch (error) {
         const err = error as Error;
@@ -355,23 +442,26 @@ serve(async (req: Request) => {
   } catch (error) {
     const err = error as Error;
     console.error('Unexpected error:', err.message);
-    
+
     let statusCode = 500;
     let errorMessage = 'An unexpected error occurred';
-    
+
     if (err.message?.includes('quota') || err.message?.includes('rate limit')) {
       statusCode = 429;
       errorMessage = 'Rate limit exceeded. Please try again later.';
-    } else if (err.message?.includes('authentication') || err.message?.includes('key')) {
+    } else if (
+      err.message?.includes('authentication') ||
+      err.message?.includes('key')
+    ) {
       statusCode = 401;
       errorMessage = 'Authentication error with AI provider.';
     }
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: errorMessage,
-        details: err.message 
-      }), 
+        details: err.message,
+      }),
       { status: statusCode }
     );
   }

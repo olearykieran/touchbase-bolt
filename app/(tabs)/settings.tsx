@@ -41,7 +41,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { PaymentService } from '@/services/payment';
 import { isSimulator } from '@/services/payment';
 import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
-import PaywallModal from '@/components/PaywallModal';
 import RevenueCatPaywallModal from '@/components/RevenueCatPaywallModal';
 import { IAPDebugPanel } from '@/components/IAPDebugPanel';
 import { SubscriptionDebugModal } from '@/components/SubscriptionDebugModal';
@@ -379,8 +378,8 @@ export default function SettingsScreen() {
             try {
               setIsLoading(true);
               
-              // Use our platform-specific payment service
-              const success = await PaymentService.cancelSubscription();
+              // Use RevenueCat for subscription management
+              const success = await RevenueCatPaymentService.cancelSubscription();
               
               if (success && Platform.OS === 'android') {
                 Alert.alert(
@@ -414,7 +413,7 @@ export default function SettingsScreen() {
     
     try {
       setIsLoading(true);
-      const success = await PaymentService.restorePurchases();
+      const success = await RevenueCatPaymentService.restorePurchases();
       
       if (success) {
         Alert.alert('Success', 'Your purchases have been restored.');
@@ -461,7 +460,10 @@ export default function SettingsScreen() {
   <View style={{ flex: 1 }}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: 40, paddingTop: headerHeight }}
+      contentContainerStyle={{ 
+        paddingBottom: Platform.OS === 'ios' ? 100 : 80, 
+        paddingTop: headerHeight + 16 
+      }}
     >
       {userEmail && (
         <View style={[styles.section, { 

@@ -137,9 +137,12 @@ function RootLayoutNav({
 
   // Get user session
   const [user, setUser] = useState<any>(null);
+  const [initializing, setInitializing] = useState(true);
+  
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setInitializing(false);
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -181,8 +184,8 @@ function RootLayoutNav({
     };
   }, []);
 
-  // Protected route logic
-  useProtectedRoute(user);
+  // Protected route logic - only run after initialization
+  useProtectedRoute(initializing ? null : user);
 
   // Listen for Stripe deep links
   useEffect(() => {
@@ -201,6 +204,15 @@ function RootLayoutNav({
 
   // *** Dynamically create styles based on theme ***
   const modalStyles = getModalStyles(colors, colorScheme);
+
+  // Show loading screen during initial auth check
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ThemedText style={{ fontSize: 24, fontWeight: '600', color: colors.accent }}>KeepTouch</ThemedText>
+      </View>
+    );
+  }
 
   return (
     <>

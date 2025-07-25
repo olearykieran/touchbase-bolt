@@ -45,11 +45,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import * as SMS from 'expo-sms';
-import PaywallModal from '../../components/PaywallModal';
+import RevenueCatPaywallModal from '../../components/RevenueCatPaywallModal';
 import { AppState } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
-import { PaymentService } from '@/services/payment';
+import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
 
 // Define types if they are not already globally defined
 interface ContactItem {
@@ -879,12 +879,14 @@ function ContactsScreen(props: any) {
 
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
     try {
-      // Use our platform-specific PaymentService instead of direct Stripe implementation
-      const success = await PaymentService.purchaseSubscription(plan);
+      // Use RevenueCat for all subscription handling
+      const success = await RevenueCatPaymentService.purchaseSubscription(plan);
       
       if (success) {
-        // Set flag to refresh profile on next app focus - this is already handled in PaymentService
-        console.log(`${Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'} purchase initiated successfully`);
+        // Set flag to refresh profile on next app focus
+        console.log(`RevenueCat purchase initiated successfully for ${plan} plan`);
+        // Refresh subscription status after successful purchase
+        await refreshUserProfile(false);
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -907,9 +909,8 @@ function ContactsScreen(props: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <FlatList
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <FlatList
           style={{ flex: 1, paddingTop: headerHeight }}
           data={
             [...contacts].sort((a, b) => {
@@ -1024,30 +1025,34 @@ function ContactsScreen(props: any) {
           )}
           ListFooterComponent={
             contacts && contacts.length > 0 ? (
-              <TouchableOpacity
-                style={[
-                  styles.fab,
-                  {
-                    alignSelf: 'center',
-                    marginVertical: 32,
-                    backgroundColor: colors.accent,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 4,
-                    elevation: 4,
-                  },
-                ]}
-                onPress={() => router.push('/(tabs)/add')}
-              >
-                <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
-                  +
-                </ThemedText>
-              </TouchableOpacity>
+              <View style={{ height: 100 }} />
             ) : null
           }
         />
-      </View>
+      {contacts && contacts.length > 0 && (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            {
+              position: 'absolute',
+              bottom: Platform.OS === 'ios' ? 90 : 80,
+              right: 20,
+              backgroundColor: colors.accent,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 6,
+              elevation: 8,
+              zIndex: 999,
+            },
+          ]}
+          onPress={() => router.push('/(tabs)/add')}
+        >
+          <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+            +
+          </ThemedText>
+        </TouchableOpacity>
+      )}
       <CustomPromptModal
         visible={isCustomPromptModalVisible}
         onClose={handleCloseModal}
@@ -1055,7 +1060,7 @@ function ContactsScreen(props: any) {
         prompt={tempPrompt}
         onChangePrompt={setTempPrompt}
       />
-      <PaywallModal
+      <RevenueCatPaywallModal
         visible={showPaywall}
         errorType={'messages'}
         onClose={handleClosePaywall}

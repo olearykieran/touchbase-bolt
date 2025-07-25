@@ -1,10 +1,12 @@
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import Purchases, { 
   PurchasesOffering, 
   CustomerInfo,
   LOG_LEVEL
 } from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { supabase } from '../lib/supabase';
 import { facebookAds } from './facebookAds';
 
@@ -459,6 +461,46 @@ export class RevenueCatPaymentService {
       return true;
     } catch (error) {
       console.error('[RevenueCat] Error syncing purchases:', error);
+      return false;
+    }
+  }
+
+  // Cancel subscription - directs to iOS subscription management
+  static async cancelSubscription(): Promise<boolean> {
+    try {
+      if (Platform.OS === 'ios') {
+        // For iOS, direct user to iTunes subscription management
+        // Check if we're in a simulator
+        if (Constants.appOwnership === 'expo' || !Device.isDevice) {
+          Alert.alert(
+            'Test Mode',
+            'Running in simulator/Expo Go. This would normally open iTunes subscription settings.',
+            [{ text: 'OK' }]
+          );
+          return true;
+        }
+        
+        // In a real device, try to open the iTunes URL
+        try {
+          await Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
+        } catch (error) {
+          console.error('Error opening subscription URL:', error);
+          Alert.alert(
+            'Subscription Management',
+            'Please open Settings > iTunes & App Store > Your Apple ID > Subscriptions to manage your subscription.',
+            [{ text: 'OK' }]
+          );
+        }
+        
+        return true;
+      } else {
+        // For Android, you might handle this differently
+        Alert.alert('Not Available', 'Cancel subscription is only available on iOS devices');
+        return false;
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+      console.error('Cancel subscription error:', err);
       return false;
     }
   }

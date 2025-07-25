@@ -10,16 +10,17 @@ import {
   Modal,
   Linking,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../components/ThemeProvider';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PaywallModal from '../../components/PaywallModal';
+import RevenueCatPaywallModal from '../../components/RevenueCatPaywallModal';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
-import { PaymentService } from '@/services/payment';
+import { RevenueCatPaymentService } from '@/services/revenueCatPayment';
 import { facebookAds } from '@/services/facebookAds';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { ThemedText } from '@/components/ThemedText';
@@ -212,14 +213,12 @@ export default function AddContactScreen() {
 
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
     try {
-      // Use our platform-specific PaymentService instead of direct Stripe implementation
-      const success = await PaymentService.purchaseSubscription(plan);
+      // Use RevenueCat for all subscription handling
+      const success = await RevenueCatPaymentService.purchaseSubscription(plan);
 
       if (success) {
         console.log(
-          `${
-            Platform.OS === 'ios' ? 'Apple IAP' : 'Stripe'
-          } purchase initiated successfully`
+          `RevenueCat purchase initiated successfully for ${plan} plan`
         );
         
         // Track purchase in Facebook Ads
@@ -246,13 +245,22 @@ export default function AddContactScreen() {
   };
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: colors.background, paddingTop: headerHeight },
-      ]}
-      contentContainerStyle={{ paddingBottom: 20 }}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 16,
+            paddingBottom: 20,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+        >
       <View style={styles.form}>
         {error && error !== MESSAGE_LIMIT_ERROR && (
           <ThemedText
@@ -271,7 +279,7 @@ export default function AddContactScreen() {
             {error}{' '}
           </ThemedText>
         )}
-        <PaywallModal
+        <RevenueCatPaywallModal
           visible={showPaywall}
           onClose={handleClosePaywall}
           onUpgrade={handleUpgrade}
@@ -317,8 +325,8 @@ export default function AddContactScreen() {
                 style={[
                   styles.contactPickerButton,
                   {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    backgroundColor: colors.accent,
+                    borderColor: colors.accent,
                   },
                 ]}
                 onPress={() => {
@@ -329,11 +337,11 @@ export default function AddContactScreen() {
                   }
                 }}
               >
-                <Users size={20} color={colors.accent} />
+                <Users size={20} color="#ffffff" />
                 <ThemedText
                   style={[
                     styles.contactPickerText,
-                    { color: colors.accent, fontWeight: '600' },
+                    { color: '#ffffff', fontWeight: '600' },
                   ]}
                 >
                   Import from Contacts
@@ -345,18 +353,18 @@ export default function AddContactScreen() {
               style={[
                 styles.contactPickerButton,
                 {
-                  backgroundColor: colors.secondaryBackground,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  backgroundColor: colors.accent,
+                  borderWidth: 0,
+                  borderColor: colors.accent,
                 },
               ]}
               onPress={() => setShowContactPicker(true)}
             >
-              <Users size={24} color={colors.accent} />
+              <Users size={24} color="#ffffff" />
               <ThemedText
-                style={[styles.contactPickerText, { color: colors.accent }]}
+                style={[styles.contactPickerText, { color: '#ffffff', fontWeight: '600' }]}
               >
-                Click to Add from Contacts
+                Import from Contacts
               </ThemedText>
             </TouchableOpacity>
           ))}
@@ -842,7 +850,9 @@ export default function AddContactScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -874,11 +884,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'white',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 24,
     gap: 8,
     borderWidth: 1,
     borderColor: '#ccc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   contactPickerText: {
     fontSize: 16,
@@ -914,7 +929,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 20,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
   },
   submitButtonDisabled: {
     opacity: 0.6,
