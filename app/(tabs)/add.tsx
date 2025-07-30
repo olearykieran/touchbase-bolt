@@ -11,6 +11,8 @@ import {
   Linking,
   Alert,
   SafeAreaView,
+  KeyboardAvoidingView,
+  ImageBackground,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
@@ -28,7 +30,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
 import { useContactStore } from '@/lib/store';
 import { router } from 'expo-router';
-import { UserPlus, Users } from 'lucide-react-native';
+import { UserPlus, Users, User, Phone, Mail } from 'lucide-react-native';
 import ContactPickerModal from '@/components/ContactPickerModal';
 import Notifications from 'expo-notifications';
 
@@ -131,7 +133,7 @@ export default function AddContactScreen() {
       if (!shown) {
         setTimeout(() => {
           setShowAddOnboarding(true);
-          setAddOnboardingStep(1);
+          setAddOnboardingStep(3); // Skip to step 3 since we removed steps 1 and 2
           setTooltipVisible(true);
         }, 1000);
       }
@@ -245,7 +247,12 @@ export default function AddContactScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ImageBackground 
+      source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      imageStyle={{ opacity: 0.02 }}
+    >
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -255,7 +262,7 @@ export default function AddContactScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 16,
+            paddingTop: 32,
             paddingBottom: 20,
           }}
           keyboardShouldPersistTaps="handled"
@@ -285,362 +292,241 @@ export default function AddContactScreen() {
           onUpgrade={handleUpgrade}
           errorType={paywallType}
         />
-        {Platform.OS !== 'web' &&
-          (showAddOnboarding && addOnboardingStep === 1 ? (
-            <Tooltip
-              isVisible={
-                tooltipVisible && showAddOnboarding && addOnboardingStep === 1
-              }
-              content={
-                <View style={{ padding: 8 }}>
-                  <ThemedText
-                    style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
-                  >
-                    Use this to add from your contacts
-                  </ThemedText>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: colors.card,
-                      paddingVertical: 8,
-                      paddingHorizontal: 16,
-                      borderRadius: 8,
-                      marginTop: 8,
-                      alignSelf: 'flex-end',
-                    }}
-                    onPress={handleNextAddOnboarding}
-                  >
-                    <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>
-                      Next
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              }
-              placement="bottom"
-              onClose={handleCloseTooltip}
-              contentStyle={{ backgroundColor: colors.accent }}
-              arrowStyle={{ borderTopColor: colors.accent }}
-              backgroundColor="rgba(0,0,0,0.4)"
-            >
-              <TouchableOpacity
-                style={[
-                  styles.contactPickerButton,
-                  {
-                    backgroundColor: colors.accent,
-                    borderColor: colors.accent,
-                  },
-                ]}
-                onPress={() => {
-                  if (contactPermissionStatus !== 'granted') {
-                    setShowContactPermissionPrompt(true);
-                  } else {
-                    setShowContactPicker(true);
-                  }
-                }}
-              >
-                <Users size={20} color="#ffffff" />
-                <ThemedText
-                  style={[
-                    styles.contactPickerText,
-                    { color: '#ffffff', fontWeight: '600' },
-                  ]}
-                >
-                  Import from Contacts
-                </ThemedText>
-              </TouchableOpacity>
-            </Tooltip>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.contactPickerButton,
-                {
-                  backgroundColor: colors.accent,
-                  borderWidth: 0,
-                  borderColor: colors.accent,
-                },
-              ]}
-              onPress={() => setShowContactPicker(true)}
-            >
-              <Users size={24} color="#ffffff" />
-              <ThemedText
-                style={[styles.contactPickerText, { color: '#ffffff', fontWeight: '600' }]}
-              >
-                Import from Contacts
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          Name
-        </ThemedText>
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.secondaryBackground,
-              borderWidth: 1,
-              borderColor: colors.border,
-              color: colors.text,
-            },
-          ]}
-          placeholder="Name"
-          placeholderTextColor={colors.mutedText}
-          value={formData.name}
-          onChangeText={(text) => setFormData({ ...formData, name: text })}
-        />
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          Email
-        </ThemedText>
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.secondaryBackground,
-              borderWidth: 1,
-              borderColor: colors.border,
-              color: colors.text,
-            },
-          ]}
-          placeholder="Email"
-          placeholderTextColor={colors.mutedText}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-        />
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          Phone
-        </ThemedText>
-        <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.secondaryBackground,
-              borderWidth: 1,
-              borderColor: colors.border,
-              color: colors.text,
-            },
-          ]}
-          placeholder="Phone"
-          placeholderTextColor={colors.mutedText}
-          keyboardType="phone-pad"
-          value={formData.phone}
-          onChangeText={(text) => setFormData({ ...formData, phone: text })}
-        />
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          Contact Frequency
-        </ThemedText>
-        {showAddOnboarding && addOnboardingStep === 2 ? (
-          <Tooltip
-            isVisible={
-              tooltipVisible && showAddOnboarding && addOnboardingStep === 2
-            }
-            content={
-              <View style={{ padding: 8 }}>
-                <ThemedText
-                  style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
-                >
-                  Choose how often to be in touch
-                </ThemedText>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.card,
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    marginTop: 8,
-                    alignSelf: 'flex-end',
-                  }}
-                  onPress={handleNextAddOnboarding}
-                >
-                  <ThemedText style={{ color: '#007AFF', fontWeight: '600' }}>
-                    Next
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            }
-            placement="top"
-            onClose={handleCloseTooltip}
-            contentStyle={{ backgroundColor: '#007AFF' }}
-            arrowStyle={{ borderTopColor: '#007AFF' }}
-            backgroundColor="rgba(0,0,0,0.4)"
-          >
-            <View style={styles.frequencyButtons}>
-              {frequencies.map((frequency) => (
-                <TouchableOpacity
-                  key={frequency}
-                  style={[
-                    styles.frequencyButton,
-                    formData.frequency === frequency &&
-                      styles.frequencyButtonActive,
-                    {
-                      backgroundColor:
-                        formData.frequency === frequency
-                          ? colors.accent
-                          : colors.secondaryBackground,
-                    },
-                  ]}
-                  onPress={() => {
-                    setFormData({ ...formData, frequency });
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                >
-                  <ThemedText
-                    style={[
-                      styles.frequencyButtonText,
-                      formData.frequency === frequency &&
-                        styles.frequencyButtonTextActive,
-                      {
-                        color:
-                          formData.frequency === frequency
-                            ? '#fff'
-                            : colors.mutedText,
-                      },
-                    ]}
-                  >
-                    {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Tooltip>
-        ) : (
-          <View style={styles.frequencyButtons}>
-            {frequencies.map((freq) => (
-              <TouchableOpacity
-                key={freq}
-                style={[
-                  styles.frequencyButton,
-                  formData.frequency === freq && {
-                    backgroundColor: colors.accent,
-                  },
-                ]}
-                onPress={() => setFormData({ ...formData, frequency: freq })}
-              >
-                <ThemedText
-                  style={[
-                    styles.frequencyButtonText,
-                    formData.frequency === freq && { color: '#fff' },
-                  ]}
-                >
-                  {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          Birthday (optional)
-        </ThemedText>
-        <TouchableOpacity
-          style={[
-            styles.datePickerButton,
-            {
-              backgroundColor: colors.secondaryBackground,
-              borderWidth: 1,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={() => setShowBirthdayPicker(true)}
-        >
-          <ThemedText
-            style={{
-              color: formData.birthday ? colors.text : colors.secondaryText,
-            }}
-          >
-            {formData.birthday
-              ? formData.birthday.toLocaleDateString()
-              : 'Select birthday (optional)'}
-          </ThemedText>
-        </TouchableOpacity>
-
-        <ThemedText style={[styles.label, { color: colors.text }]}>
-          First Reminder Time
-        </ThemedText>
-        {showAddOnboarding && addOnboardingStep === 3 ? (
-          <Tooltip
-            isVisible={
-              tooltipVisible && showAddOnboarding && addOnboardingStep === 3
-            }
-            content={
-              <View style={{ padding: 8 }}>
-                <ThemedText
-                  style={{ color: '#fff', fontWeight: '500', fontSize: 16 }}
-                >
-                  Use the button when you're ready
-                </ThemedText>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.card,
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    marginTop: 8,
-                    alignSelf: 'flex-end',
-                  }}
-                  onPress={handleNextAddOnboarding}
-                >
-                  <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>
-                    Got it!
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            }
-            placement="top"
-            onClose={handleCloseTooltip}
-            contentStyle={{ backgroundColor: '#007AFF' }}
-            arrowStyle={{ borderTopColor: '#007AFF' }}
-            backgroundColor="rgba(0,0,0,0.4)"
-          >
-            <TouchableOpacity
-              style={[
-                styles.datePickerButton,
-                {
-                  backgroundColor: colors.secondaryBackground,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() => setShowFirstContactDatePicker(true)}
-            >
-              <ThemedText style={{ color: colors.text }}>
-                {formData.firstContactDate
-                  ? formData.firstContactDate.toLocaleString()
-                  : 'Select Date & Time'}
-              </ThemedText>
-            </TouchableOpacity>
-          </Tooltip>
-        ) : (
+        {Platform.OS !== 'web' && (
           <TouchableOpacity
             style={[
-              styles.datePickerButton,
+              styles.contactPickerButton,
               {
-                backgroundColor: colors.secondaryBackground,
+                backgroundColor: 'transparent',
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
               },
             ]}
-            onPress={() => setShowFirstContactDatePicker(true)}
+            onPress={() => {
+              if (contactPermissionStatus !== 'granted') {
+                setShowContactPermissionPrompt(true);
+              } else {
+                setShowContactPicker(true);
+              }
+            }}
           >
-            <ThemedText style={{ color: colors.text }}>
-              {formData.firstContactDate
-                ? formData.firstContactDate.toLocaleString()
-                : 'Select Date & Time'}
+            <Users size={20} color={colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'} />
+            <ThemedText
+              style={[styles.contactPickerText, { 
+                color: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)', 
+                fontWeight: '500', 
+                fontSize: 14 
+              }]}
+            >
+              Click here to import from Contacts
             </ThemedText>
           </TouchableOpacity>
         )}
 
+        <View style={styles.row}>
+          <View style={styles.column}>
+            <ThemedText style={[styles.label, { color: colors.text }]}>
+              Name
+            </ThemedText>
+            <View style={styles.inputContainer}>
+              <User size={18} color={colors.mutedText} style={styles.inputIcon} />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    borderBottomWidth: 2,
+                    borderBottomColor: colors.border,
+                    color: colors.text,
+                    paddingLeft: 36,
+                  },
+                ]}
+                placeholder="Name"
+                placeholderTextColor={colors.mutedText}
+                value={formData.name}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+              />
+            </View>
+          </View>
+          <View style={styles.column}>
+            <ThemedText style={[styles.label, { color: colors.text }]}>
+              Phone
+            </ThemedText>
+            <View style={styles.inputContainer}>
+              <Phone size={18} color={colors.mutedText} style={styles.inputIcon} />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    borderBottomWidth: 2,
+                    borderBottomColor: colors.border,
+                    color: colors.text,
+                    paddingLeft: 36,
+                  },
+                ]}
+                placeholder="Phone"
+                placeholderTextColor={colors.mutedText}
+                keyboardType="phone-pad"
+                value={formData.phone}
+                onChangeText={(text) => setFormData({ ...formData, phone: text })}
+              />
+            </View>
+          </View>
+        </View>
+
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Email (optional)
+        </ThemedText>
+        <View style={styles.inputContainer}>
+          <Mail size={18} color={colors.mutedText} style={styles.inputIcon} />
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                borderBottomWidth: 2,
+                borderBottomColor: colors.border,
+                color: colors.text,
+                paddingLeft: 36,
+              },
+            ]}
+            placeholder="Email (optional)"
+            placeholderTextColor={colors.mutedText}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={formData.email}
+            onChangeText={(text) => setFormData({ ...formData, email: text })}
+          />
+        </View>
+
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Contact Frequency
+        </ThemedText>
+        <View style={styles.frequencyButtons}>
+          {frequencies.map((freq) => (
+              <View key={freq} style={styles.frequencyButtonContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.frequencyButton,
+                    formData.frequency === freq && styles.frequencyButtonActive,
+                    {
+                      backgroundColor:
+                        formData.frequency === freq
+                          ? colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.5)' : 'rgba(113, 113, 122, 0.4)'
+                          : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.15)',
+                      borderWidth: 1,
+                      borderColor: 
+                        formData.frequency === freq
+                          ? colors.accent
+                          : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                      backdropFilter: 'blur(20px)',
+                      shadowColor: formData.frequency === freq ? colors.accent : 'transparent',
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: formData.frequency === freq ? 0.3 : 0,
+                      shadowRadius: 10,
+                      elevation: formData.frequency === freq ? 5 : 0,
+                    },
+                  ]}
+                  onPress={() => setFormData({ ...formData, frequency: freq })}
+                >
+                  <ThemedText
+                    style={[
+                      styles.frequencyButtonText,
+                      formData.frequency === freq && styles.frequencyButtonTextActive,
+                      {
+                        color:
+                          formData.frequency === freq
+                            ? '#fff'
+                            : colorScheme === 'dark' ? '#ffffff' : '#000000',
+                        opacity: formData.frequency === freq ? 1 : 0.9,
+                      },
+                    ]}
+                  >
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+        <View style={styles.row}>
+          <View style={styles.column}>
+            <ThemedText style={[styles.label, { color: colors.text }]}>
+              Birthday (optional)
+            </ThemedText>
+            <TouchableOpacity
+              style={[
+                styles.datePickerButton,
+                {
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.3)' : 'rgba(113, 113, 122, 0.25)',
+                  borderWidth: 1,
+                  borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)',
+                  backdropFilter: 'blur(10px)',
+                },
+              ]}
+              onPress={() => setShowBirthdayPicker(true)}
+            >
+              <ThemedText
+                style={{
+                  color: formData.birthday ? colors.text : colors.secondaryText,
+                  opacity: 0.9,
+                  fontSize: 14,
+                }}
+                numberOfLines={1}
+              >
+                {formData.birthday
+                  ? formData.birthday.toLocaleDateString()
+                  : 'Select birthday'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.column}>
+            <ThemedText style={[styles.label, { color: colors.text }]}>
+              First Reminder (optional)
+            </ThemedText>
+            <TouchableOpacity
+                style={[
+                  styles.datePickerButton,
+                  {
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.3)' : 'rgba(113, 113, 122, 0.25)',
+                    borderWidth: 1,
+                    borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)',
+                    backdropFilter: 'blur(10px)',
+                  },
+                ]}
+                onPress={() => setShowFirstContactDatePicker(true)}
+              >
+                <ThemedText style={{ color: colors.text, opacity: 0.9 }}>
+                  {formData.firstContactDate
+                    ? formData.firstContactDate.toLocaleString()
+                    : 'Select Date & Time'}
+                </ThemedText>
+              </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+        </ScrollView>
+        
+      <View style={styles.bottomButtonContainer}>
         <TouchableOpacity
           style={[
             styles.submitButton,
-            { backgroundColor: colors.accent },
+            { 
+              backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.6)' : 'rgba(113, 113, 122, 0.5)',
+              borderWidth: 1,
+              borderColor: colors.accent,
+              backdropFilter: 'blur(20px)',
+              shadowColor: colors.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 8,
+            },
             loading && styles.submitButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={loading} // Add this prop
+          disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -850,9 +736,9 @@ export default function AddContactScreen() {
           </View>
         </View>
       </Modal>
-        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -863,20 +749,36 @@ const styles = StyleSheet.create({
   form: {
     padding: 16,
   },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 0,
+  },
+  column: {
+    flex: 1,
+  },
   label: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
     color: '#000',
   },
+  inputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: 10,
+    top: 14,
+    zIndex: 1,
+  },
   input: {
     backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    borderWidth: 0,
   },
   contactPickerButton: {
     flexDirection: 'row',
@@ -902,25 +804,39 @@ const styles = StyleSheet.create({
   },
   frequencyButtons: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginBottom: 24,
+  },
+  frequencyButtonContainer: {
+    flex: 1,
   },
   frequencyButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    borderRadius: 10,
     backgroundColor: '#E5E5EA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   frequencyButtonActive: {
     backgroundColor: '#9d9e9e',
   },
   frequencyButtonText: {
     color: '#000',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '500',
   },
   frequencyButtonTextActive: {
     color: 'white',
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+    backgroundColor: 'transparent',
   },
   submitButton: {
     backgroundColor: '#007AFF',
@@ -929,14 +845,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
-    marginBottom: 20,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -956,7 +865,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'white',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
     fontSize: 16,
     borderWidth: 1,

@@ -1,9 +1,11 @@
 import React from 'react';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
-import { Home, Users, UserPlus, Flame, Settings } from 'lucide-react-native';
+import { Home, Users, UserPlus, Flame, Settings, Info } from 'lucide-react-native';
 import { useTheme } from '../../components/ThemeProvider';
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
+import { AuthGuard } from '../../components/AuthGuard';
+import { useRouter } from 'expo-router';
 import IndexScreen from '.'; // Assuming index.tsx is the contacts list
 import AddScreen from './add';
 import SettingsScreen from './settings';
@@ -18,6 +20,7 @@ interface TabBarIconProps {
 
 export default function TabLayout() {
   const { colors, colorScheme } = useTheme();
+  const router = useRouter();
 
   // Custom tab bar icon with active state highlight
   const TabBarIcon = ({ Icon, focused, color }: TabBarIconProps) => {
@@ -35,8 +38,9 @@ export default function TabLayout() {
   };
 
   return (
-    <Tabs
-      screenOptions={{
+    <AuthGuard>
+      <Tabs
+        screenOptions={{
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.secondaryText,
         tabBarStyle: {
@@ -60,7 +64,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: '',
+          title: 'KeepTouch',
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{ marginLeft: 16, padding: 8 }}
+              onPress={() => router.push('/instructions' as any)}
+            >
+              <Info size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon Icon={Home} focused={focused} color={color} />
           ),
@@ -102,6 +114,14 @@ export default function TabLayout() {
           ),
         }}
       />
-    </Tabs>
+      <Tabs.Screen
+        name="instructions"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Instructions',
+        }}
+      />
+      </Tabs>
+    </AuthGuard>
   );
 }

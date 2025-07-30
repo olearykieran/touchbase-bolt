@@ -13,6 +13,7 @@ import {
   ActionSheetIOS,
   Modal,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
@@ -132,14 +133,28 @@ const CustomPromptModal = ({
               style={[
                 styles.modalButton,
                 styles.cancelButton,
-                { backgroundColor: colors.card },
+                { 
+                  backgroundColor: 'transparent',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                },
               ]}
               onPress={onClose}
             >
-              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+              <ThemedText style={[styles.cancelButtonText, { color: colors.secondaryText }]}>Cancel</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: colors.accent }]}
+              style={[
+                styles.modalButton, 
+                { 
+                  backgroundColor: colors.accent,
+                  shadowColor: colors.accent,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }
+              ]}
               onPress={onSubmit}
               disabled={!prompt}
             >
@@ -647,8 +662,9 @@ function ContactsScreen(props: any) {
         style={[
           styles.contactCard, 
           { 
-            backgroundColor: colors.card,
-            borderColor: colors.border,
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
+            borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(20px)',
           }
         ]}
       >
@@ -669,7 +685,12 @@ function ContactsScreen(props: any) {
                 <View
                   style={[
                     styles.badgeContainer,
-                    { backgroundColor: colors.accent + '20' },
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.5)',
+                      borderWidth: 1,
+                      borderColor: colors.accent,
+                      backdropFilter: 'blur(10px)',
+                    },
                   ]}
                 >
                   <ThemedText
@@ -680,16 +701,22 @@ function ContactsScreen(props: any) {
                 </View>
               )}
               <TouchableOpacity
-                style={styles.editButton}
+                style={[styles.editButton, {
+                  backgroundColor: 'transparent',
+                  borderRadius: 8,
+                }]}
                 onPress={() => handleEditPress(item.id)}
               >
-                <PenSquare size={20} color={colors.secondaryText} />
+                <PenSquare size={18} color={colors.secondaryText} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.deleteButton, {
+                  backgroundColor: 'transparent',
+                  borderRadius: 8,
+                }]}
                 onPress={() => handleDelete(item)}
               >
-                <Trash2 size={20} color="#64403E" />
+                <Trash2 size={18} color={colorScheme === 'dark' ? '#ff6b6b' : '#e74c3c'} />
               </TouchableOpacity>
             </View>
           </View>
@@ -725,8 +752,9 @@ function ContactsScreen(props: any) {
                     style={[
                       styles.actionButton,
                       { 
-                        backgroundColor: colors.secondaryBackground,
-                        borderColor: colors.border,
+                        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)',
+                        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(10px)',
                       },
                     ]}
                     onPress={() => handlePhonePress(item.phone)}
@@ -739,8 +767,9 @@ function ContactsScreen(props: any) {
                     style={[
                       styles.actionButton,
                       { 
-                        backgroundColor: colors.secondaryBackground,
-                        borderColor: colors.border,
+                        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)',
+                        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(10px)',
                       },
                     ]}
                     onPress={() => handleEmailPress(item.email)}
@@ -751,7 +780,17 @@ function ContactsScreen(props: any) {
                 <TouchableOpacity
                   style={[
                     styles.messageButton,
-                    { backgroundColor: colors.accent },
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.6)' : 'rgba(113, 113, 122, 0.5)',
+                      borderWidth: 1,
+                      borderColor: colors.accent,
+                      backdropFilter: 'blur(20px)',
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 8,
+                      elevation: 4,
+                    },
                   ]}
                   onPress={() => showMessageOptions(item)}
                   disabled={loadingState !== null}
@@ -909,7 +948,11 @@ function ContactsScreen(props: any) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ImageBackground 
+      source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      imageStyle={{ opacity: 0.02 }}
+    >
       <FlatList
           style={{ flex: 1, paddingTop: headerHeight }}
           data={
@@ -979,10 +1022,13 @@ function ContactsScreen(props: any) {
                           styles.fab,
                           {
                             marginTop: 24,
-                            backgroundColor: colors.accent,
-                            shadowColor: '#000',
+                            backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.3)' : 'rgba(113, 113, 122, 0.25)',
+                            borderWidth: 1,
+                            borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)',
+                            backdropFilter: 'blur(10px)',
+                            shadowColor: colorScheme === 'dark' ? '#fff' : '#000',
                             shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.2,
+                            shadowOpacity: colorScheme === 'dark' ? 0.1 : 0.15,
                             shadowRadius: 4,
                             elevation: 4,
                           },
@@ -990,7 +1036,10 @@ function ContactsScreen(props: any) {
                         onPress={() => router.push('/(tabs)/add')}
                       >
                         <ThemedText
-                          style={[styles.fabText, { color: '#ffffff' }]}
+                          style={[styles.fabText, { 
+                            color: colorScheme === 'dark' ? '#ffffff' : '#000000',
+                            opacity: 0.9,
+                          }]}
                         >
                           +
                         </ThemedText>
@@ -1035,20 +1084,26 @@ function ContactsScreen(props: any) {
             styles.fab,
             {
               position: 'absolute',
-              bottom: Platform.OS === 'ios' ? 90 : 80,
-              right: 20,
-              backgroundColor: colors.accent,
-              shadowColor: '#000',
+              bottom: Platform.OS === 'ios' ? 20 : 16,
+              right: 16,
+              backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.3)' : 'rgba(113, 113, 122, 0.25)',
+              borderWidth: 1,
+              borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)',
+              backdropFilter: 'blur(10px)',
+              shadowColor: colorScheme === 'dark' ? '#fff' : '#000',
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 6,
+              shadowOpacity: colorScheme === 'dark' ? 0.1 : 0.15,
+              shadowRadius: 8,
               elevation: 8,
               zIndex: 999,
             },
           ]}
           onPress={() => router.push('/(tabs)/add')}
         >
-          <ThemedText style={[styles.fabText, { color: '#ffffff' }]}>
+          <ThemedText style={[styles.fabText, { 
+            color: colorScheme === 'dark' ? '#ffffff' : '#000000',
+            opacity: 0.9,
+          }]}>
             +
           </ThemedText>
         </TouchableOpacity>
@@ -1066,7 +1121,7 @@ function ContactsScreen(props: any) {
         onClose={handleClosePaywall}
         onUpgrade={handleUpgrade}
       />
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -1092,10 +1147,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
     borderWidth: 1,
   },
   contactInfo: {
@@ -1152,6 +1207,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   messageButton: {
     flexDirection: 'row',
@@ -1222,17 +1278,22 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     width: '100%',
     maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 20,

@@ -29,6 +29,9 @@ function SignInInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoReady, setLogoReady] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { colors, colorScheme } = useTheme();
   const router = useRouter();
@@ -168,13 +171,14 @@ function SignInInner() {
                 setLoading(true);
                 setError(null);
                 try {
-                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: 'com.holygrailstudio.boltexponativewind://reset-password',
-                  });
+                  const { error } = await supabase.auth.resetPasswordForEmail(email);
                   if (error) throw error;
+                  
+                  setResetEmail(email);
+                  setShowOtpInput(true);
                   Alert.alert(
-                    'Check your email',
-                    'We sent you a password reset link. Please check your email.',
+                    'Check Your Email',
+                    'We sent you a 6-digit code to reset your password. Enter the code below.',
                     [{ text: 'OK' }]
                   );
                 } catch (err) {
@@ -191,6 +195,86 @@ function SignInInner() {
                 Forgot Password?
               </ThemedText>
             </TouchableOpacity>
+            
+            {showOtpInput && (
+              <View style={{ marginTop: 20 }}>
+                <ThemedText style={[styles.subtitle, { color: colors.secondaryText, marginBottom: 12 }]}>
+                  Enter the 6-digit code from your email
+                </ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colorScheme === 'dark' ? '#181818' : colors.white,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      color: colors.text,
+                      fontSize: 24,
+                      textAlign: 'center',
+                      letterSpacing: 8,
+                    },
+                  ]}
+                  placeholder="000000"
+                  value={otp}
+                  onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholderTextColor={colors.secondaryText}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    { backgroundColor: colors.accent },
+                    loading && styles.buttonDisabled,
+                  ]}
+                  onPress={async () => {
+                    if (otp.length !== 6) {
+                      setError('Please enter the 6-digit code');
+                      return;
+                    }
+                    setLoading(true);
+                    setError(null);
+                    try {
+                      // Verify OTP and get session
+                      const { data, error } = await supabase.auth.verifyOtp({
+                        email: resetEmail,
+                        token: otp,
+                        type: 'recovery',
+                      });
+                      
+                      if (error) throw error;
+                      
+                      // OTP verified, navigate to reset password screen
+                      router.replace('/reset-password');
+                    } catch (err: any) {
+                      setError('Invalid code. Please check and try again.');
+                      console.error('OTP error:', err);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <ThemedText style={styles.buttonText}>Verify Code</ThemedText>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ padding: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    setShowOtpInput(false);
+                    setOtp('');
+                    setError(null);
+                  }}
+                >
+                  <ThemedText style={{ color: colors.secondaryText }}>
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           <View style={styles.logoContainer}>
             {!logoReady ? (

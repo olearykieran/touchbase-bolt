@@ -146,10 +146,15 @@ class FacebookAdsService {
   // Clear user data on logout
   async clearUserData() {
     try {
-      AppEventsLogger.clearUserID();
-      AppEventsLogger.clearUserData();
+      // Only clearUserID is available in the SDK
+      if (typeof AppEventsLogger.clearUserID === 'function') {
+        AppEventsLogger.clearUserID();
+      }
+      // Note: clearUserData doesn't exist in react-native-fbsdk-next
+      // User data will be cleared when a new user signs in with setUserData
     } catch (error) {
-      console.error('Failed to clear user data:', error);
+      // Silently fail - this is not critical for logout
+      console.log('Facebook SDK clearUserID not available');
     }
   }
 

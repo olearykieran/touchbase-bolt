@@ -1,0 +1,21 @@
+<h2>Reset Password</h2>
+
+<p>Hi {{ .Email }},</p>
+
+<p>Your password reset code is:</p>
+
+<div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+  <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; font-family: monospace;">{{ .Token }}</span>
+</div>
+
+<p><strong>To reset your password:</strong></p>
+<ol style="line-height: 1.8;">
+  <li>Open the KeepTouch app</li>
+  <li>Go to Sign In</li>
+  <li>Tap "Forgot Password?"</li>
+  <li>Enter this 6-digit code when prompted</li>
+</ol>
+
+<p style="color: #666;">This code expires in 1 hour.</p>
+
+<p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>

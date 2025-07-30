@@ -51,21 +51,28 @@ interface RootLayoutNavProps {
   handleRequestNotifications: () => void;
 }
 
-function useProtectedRoute(user: any) {
+function useProtectedRoute(user: any, initializing: boolean) {
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
+    // Don't do anything while initializing
+    if (initializing) return;
+    
     const inAuthGroup = segments[0] === '(auth)';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const onResetPasswordPage = segments.join('/').includes('reset-password');
 
-    if (!user && !inAuthGroup) {
-      // Redirect to the sign-in page.
+    if (user === false && !inAuthGroup) {
+      // User is not logged in and not on auth page, redirect to sign-in
+      console.log('Redirecting to sign-in: user not authenticated');
       router.replace('/sign-in');
-    } else if (user && inAuthGroup) {
-      // Redirect away from the sign-in page.
+    } else if (user && inAuthGroup && !onResetPasswordPage) {
+      // User is logged in but on auth page (not reset-password), redirect to home
+      console.log('Redirecting to home: user authenticated but on auth page');
       router.replace('/');
     }
-  }, [user, segments]);
+  }, [user, segments, initializing]);
 }
 
 // Root component that uses the theme - NOW handles the modal
@@ -138,17 +145,65 @@ function RootLayoutNav({
   // Get user session
   const [user, setUser] = useState<any>(null);
   const [initializing, setInitializing] = useState(true);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
   
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setInitializing(false);
+    let mounted = true;
+    
+    // Get initial session with retry
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          // Try to recover session from storage
+          const { data: { session: recoveredSession } } = await supabase.auth.refreshSession();
+          if (mounted) {
+            console.log('Recovered session:', recoveredSession ? 'exists' : 'missing');
+            setUser(recoveredSession?.user ?? false);
+            setInitializing(false);
+          }
+        } else {
+          if (mounted) {
+            console.log('Initial session:', session ? 'exists' : 'missing');
+            setUser(session?.user ?? false);
+            setInitializing(false);
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setUser(false);
+          setInitializing(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes including PASSWORD_RECOVERY events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('Auth state changed:', _event, session ? 'has session' : 'no session');
+      
+      // Handle PASSWORD_RECOVERY event specifically
+      if (_event === 'PASSWORD_RECOVERY') {
+        console.log('PASSWORD_RECOVERY event detected');
+        // The session should already be set, navigate to reset password
+        router.replace('/reset-password');
+      }
+      
+      if (mounted) {
+        setUser(session?.user ?? false);
+      }
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-  }, []);
+    // Cleanup
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   // Register for push notifications when user is logged in
   useEffect(() => {
@@ -184,20 +239,178 @@ function RootLayoutNav({
     };
   }, []);
 
-  // Protected route logic - only run after initialization
-  useProtectedRoute(initializing ? null : user);
+  // Protected route logic
+  useProtectedRoute(user, initializing, isPasswordReset);
 
-  // Listen for Stripe deep links
+  // Listen for deep links (Stripe and password reset)
   useEffect(() => {
-    const handleDeepLink = ({ url }: { url: string }) => {
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      console.log('Deep link received:', url);
+      
       if (url.includes('payment-success')) {
         console.log('Payment success deep link received:', url);
         router.replace('/(tabs)');
       } else if (url.includes('payment-cancel')) {
         console.log('Payment cancel deep link received:', url);
         router.replace('/(tabs)');
+      } else if (url.includes('reset-password')) {
+        console.log('Password reset deep link received:', url);
+        
+        try {
+          // Try multiple URL parsing strategies
+          let access_token = null;
+          let refresh_token = null;
+          let type = null;
+          let error_code = null;
+          let error_description = null;
+          
+          // Strategy 1: Hash fragments (#)
+          let code = null;
+          const hashIndex = url.indexOf('#');
+          if (hashIndex !== -1) {
+            const hashParams = url.substring(hashIndex + 1);
+            const params = new URLSearchParams(hashParams);
+            access_token = params.get('access_token');
+            refresh_token = params.get('refresh_token');
+            type = params.get('type');
+            code = params.get('code'); // Authorization code
+            error_code = params.get('error_code');
+            error_description = params.get('error_description');
+            
+            console.log('Hash params:', {
+              access_token: access_token ? 'present' : 'missing',
+              refresh_token: refresh_token ? 'present' : 'missing',
+              code: code ? 'present' : 'missing',
+              type,
+              error_code,
+              error_description
+            });
+          }
+          
+          // Strategy 2: Query parameters (?)
+          if (!access_token && !code) {
+            const queryIndex = url.indexOf('?');
+            if (queryIndex !== -1) {
+              const queryParams = url.substring(queryIndex + 1);
+              const params = new URLSearchParams(queryParams);
+              access_token = params.get('access_token');
+              refresh_token = params.get('refresh_token');
+              type = params.get('type');
+              code = params.get('code'); // Authorization code
+              error_code = params.get('error_code');
+              error_description = params.get('error_description');
+              
+              console.log('Query params:', {
+                access_token: access_token ? 'present' : 'missing',
+                refresh_token: refresh_token ? 'present' : 'missing',
+                code: code ? 'present' : 'missing',
+                type,
+                error_code,
+                error_description
+              });
+            }
+          }
+          
+          // Check for errors in the URL
+          if (error_code || error_description) {
+            console.error('Password reset error in URL:', { error_code, error_description });
+            Alert.alert(
+              'Password Reset Error',
+              error_description || 'The password reset link is invalid or has expired. Please request a new one.',
+              [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+            );
+            return;
+          }
+          
+          // Handle authorization code flow (PKCE)
+          if (code && !access_token) {
+            console.log('Authorization code found, exchanging for session');
+            console.log('Code:', code);
+            try {
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+              
+              if (!error && data.session) {
+                console.log('Code exchanged successfully, session established');
+                console.log('Session user:', data.session.user.email);
+                // Mark this as a password reset flow
+                setIsPasswordReset(true);
+                // Navigate to reset password screen
+                setTimeout(() => {
+                  router.replace('/reset-password');
+                }, 100);
+              } else {
+                console.error('Error exchanging code for session:', error);
+                console.error('Error details:', error?.message, error?.status);
+                Alert.alert(
+                  'Invalid or Expired Link',
+                  error?.message || 'This password reset link is invalid or has expired. Please request a new one.',
+                  [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+                );
+              }
+            } catch (err) {
+              console.error('Error in code exchange:', err);
+              Alert.alert(
+                'Error',
+                'Failed to process reset link. Please request a new one.',
+                [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+              );
+            }
+          }
+          // Try to set session if we have tokens
+          else if (access_token) {
+            console.log('Attempting to set session with tokens');
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token: refresh_token || '',
+            });
+            
+            if (!error && data.session) {
+              console.log('Session set successfully');
+              // Navigate to reset password screen
+              router.replace('/reset-password');
+            } else {
+              console.error('Error setting recovery session:', error);
+              Alert.alert(
+                'Session Error',
+                error?.message || 'Could not establish session. Please request a new password reset link.',
+                [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+              );
+            }
+          } else {
+            console.log('No access token or code found in URL');
+            // Sometimes the link just opens the app without tokens
+            // Check if there's already a recovery session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log('Existing session found, navigating to reset password');
+              router.replace('/reset-password');
+            } else {
+              Alert.alert(
+                'Invalid Link',
+                'The password reset link appears to be incomplete. Please request a new one.',
+                [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+              );
+            }
+          }
+        } catch (err) {
+          console.error('Error handling password reset deep link:', err);
+          Alert.alert(
+            'Error',
+            'An error occurred while processing the reset link. Please try again.',
+            [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+          );
+        }
       }
     };
+    
+    // Check initial URL
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+    
+    // Listen for new URLs
     const subscription = Linking.addEventListener('url', handleDeepLink);
     return () => subscription.remove();
   }, [router]);

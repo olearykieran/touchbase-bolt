@@ -8,6 +8,7 @@ import {
   Alert,
   Share,
   Linking,
+  ImageBackground,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import {
@@ -457,9 +458,13 @@ export default function SettingsScreen() {
   };
 
   return (
-  <View style={{ flex: 1 }}>
+  <ImageBackground 
+    source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
+    style={[styles.container, { backgroundColor: colors.background }]}
+    imageStyle={{ opacity: 0.02 }}
+  >
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={{ flex: 1, backgroundColor: 'transparent' }}
       contentContainerStyle={{ 
         paddingBottom: Platform.OS === 'ios' ? 100 : 80, 
         paddingTop: headerHeight + 16 
@@ -467,10 +472,16 @@ export default function SettingsScreen() {
     >
       {userEmail && (
         <View style={[styles.section, { 
-          backgroundColor: colors.card,
+          backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
           marginBottom: 8,
+          backdropFilter: 'blur(20px)',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
         }]}>
           <View style={styles.setting}>
             <ThemedText style={[styles.settingText, { fontSize: 14, color: colors.secondaryText }]}>
@@ -484,9 +495,15 @@ export default function SettingsScreen() {
       )}
       
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.sectionTitle]}>Notifications</ThemedText>
         <View style={styles.setting}>
@@ -499,17 +516,23 @@ export default function SettingsScreen() {
             onValueChange={(value) =>
               toggleNotificationSetting('notifications', value)
             }
-            trackColor={{ false: '#767577', true: colors.accent + '33' }}
-            thumbColor={notifications ? colors.accent : '#f4f3f4'}
+            trackColor={{ false: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)', true: colors.accent + '55' }}
+            thumbColor={notifications ? colors.accent : colorScheme === 'dark' ? '#e5e5ea' : '#f4f3f4'}
           />
         </View>
       </View>
 
       {/* Theme Section */}
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.sectionTitle]}>Appearance</ThemedText>
         <View style={styles.setting}>
@@ -528,12 +551,18 @@ export default function SettingsScreen() {
               style={{
                 flex: 1,
                 marginHorizontal: 4,
-                backgroundColor: theme === option ? colors.accent : colors.card,
-                borderRadius: 8,
+                backgroundColor: theme === option ? colors.accent : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.4)',
+                borderRadius: 10,
                 padding: 12,
                 alignItems: 'center',
-                borderWidth: theme === option ? 0 : 1,
-                borderColor: colors.border,
+                borderWidth: 1,
+                borderColor: theme === option ? colors.accent : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(10px)',
+                shadowColor: theme === option ? colors.accent : 'transparent',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: theme === option ? 0.3 : 0,
+                shadowRadius: 10,
+                elevation: theme === option ? 3 : 0,
               }}
               onPress={() => setTheme(option)}
             >
@@ -554,13 +583,24 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.sectionTitle]}>General</ThemedText>
         <TouchableOpacity
-          style={styles.setting}
+          style={[styles.setting, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+            borderRadius: 10,
+            marginVertical: 4,
+            paddingHorizontal: 12,
+          }]}
           onPress={async () => {
             try {
               await Share.share({
@@ -580,7 +620,12 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.setting}
+          style={[styles.setting, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+            borderRadius: 10,
+            marginVertical: 4,
+            paddingHorizontal: 12,
+          }]}
           onPress={() => {
             Linking.openURL(
               'https://olearykieran.github.io/touchbase-bolt/support.html'
@@ -595,23 +640,52 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <TouchableOpacity 
+          style={[styles.signOutButton, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.15)' : 'rgba(100, 64, 62, 0.1)',
+            borderRadius: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.3)' : 'rgba(100, 64, 62, 0.2)',
+          }]} 
+          onPress={handleSignOut}
+        >
           <LogOut size={24} color={colorScheme === 'dark' ? '#ff6b6b' : '#64403E'} />
           <ThemedText style={[styles.signOutText, { color: colorScheme === 'dark' ? '#ff6b6b' : '#64403E' }]}>Sign Out</ThemedText>
         </TouchableOpacity>
       </View>
 
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={[styles.deleteButton, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.15)' : 'rgba(100, 64, 62, 0.1)',
+            borderRadius: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.3)' : 'rgba(100, 64, 62, 0.2)',
+          }]}
           onPress={handleDeleteAccount}
         >
           <Trash2 size={24} color={colorScheme === 'dark' ? '#ff6b6b' : '#64403E'} />
@@ -620,9 +694,15 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.sectionTitle]}>Subscription</ThemedText>
         <View style={styles.setting}>
@@ -656,7 +736,7 @@ export default function SettingsScreen() {
         {subscriptionStatus === 'Free' && (
           <TouchableOpacity
             style={[{
-              backgroundColor: colors.accent,
+              backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.6)' : 'rgba(113, 113, 122, 0.5)',
               paddingHorizontal: 20,
               paddingVertical: 12,
               borderRadius: 12,
@@ -665,11 +745,14 @@ export default function SettingsScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
+              borderWidth: 1,
+              borderColor: colors.accent,
+              backdropFilter: 'blur(20px)',
+              shadowColor: colors.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 5,
             }, { opacity: isLoading ? 0.5 : 1 }]}
             onPress={() => setShowPaywall(true)}
             disabled={isLoading}
@@ -701,7 +784,17 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.cancelSubscription,
-                { opacity: isLoading ? 0.5 : 1 },
+                { 
+                  opacity: isLoading ? 0.5 : 1,
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.15)' : 'rgba(100, 64, 62, 0.1)',
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: colorScheme === 'dark' ? 'rgba(255, 107, 107, 0.3)' : 'rgba(100, 64, 62, 0.2)',
+                  marginTop: 16,
+                  borderTopWidth: 1,
+                },
               ]}
               onPress={handleCancelSubscription}
               disabled={isLoading}
@@ -717,7 +810,15 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.subscriptionOption,
-                { opacity: isLoading ? 0.5 : 1 },
+                { 
+                  opacity: isLoading ? 0.5 : 1,
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  marginTop: 16,
+                  borderTopWidth: 0,
+                },
               ]}
               onPress={handleRestorePurchases}
               disabled={isLoading}
@@ -729,7 +830,15 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.subscriptionOption,
-                { opacity: isLoading ? 0.5 : 1 },
+                { 
+                  opacity: isLoading ? 0.5 : 1,
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  marginTop: 12,
+                  borderTopWidth: 0,
+                },
               ]}
               onPress={handleManageSubscription}
               disabled={isLoading}
@@ -743,21 +852,39 @@ export default function SettingsScreen() {
 
       {/* Legal Links Section */}
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.sectionTitle]}>Legal</ThemedText>
         
         <TouchableOpacity
-          style={styles.option}
+          style={[styles.option, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+            borderRadius: 10,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            marginVertical: 4,
+          }]}
           onPress={() => Linking.openURL('https://keeptouch.app/terms')}
         >
           <ThemedText style={styles.optionText}>Terms of Use</ThemedText>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={styles.option}
+          style={[styles.option, {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+            borderRadius: 10,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            marginVertical: 4,
+          }]}
           onPress={() => Linking.openURL('https://keeptouch.app/privacy')}
         >
           <ThemedText style={styles.optionText}>Privacy Policy</ThemedText>
@@ -765,9 +892,15 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.section, { 
-        backgroundColor: colors.card,
+        backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
       }]}>
         <ThemedText style={[styles.version, { color: colors.secondaryText }]}>
           Version 1.0.0
@@ -883,7 +1016,7 @@ export default function SettingsScreen() {
       visible={showDebugModal} 
       onClose={() => setShowDebugModal(false)} 
     />
-  </View>
+  </ImageBackground>
   );
 }
 
@@ -895,7 +1028,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 14,
     marginHorizontal: 16,
     padding: 16,
   },
@@ -971,6 +1104,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#E5E5EA',
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   optionText: {
     fontSize: 16,
