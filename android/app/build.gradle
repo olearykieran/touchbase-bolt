@@ -95,7 +95,7 @@ missingDimensionStrategy "store", "play"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.2.1"
+        versionName "1.9"
     }
     signingConfigs {
         debug {

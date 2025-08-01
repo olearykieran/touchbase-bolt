@@ -25,6 +25,7 @@ import {
   Gift,
   PenSquare,
   Trash2,
+  Calendar,
 } from 'lucide-react-native';
 import { useContactStore } from '@/lib/store';
 import {
@@ -42,6 +43,7 @@ import React from 'react';
 import Constants from 'expo-constants';
 import { useTheme } from '../../components/ThemeProvider';
 import EditContactModal from '../../components/EditContactModal';
+import ScheduleMessageModal from '../../components/ScheduleMessageModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Tooltip from 'react-native-walkthrough-tooltip';
@@ -205,6 +207,8 @@ function ContactsScreen(props: any) {
   );
   const [tempPrompt, setTempPrompt] = useState('');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false);
+  const [selectedContactForSchedule, setSelectedContactForSchedule] = useState<ContactItem | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(
     null
   );
@@ -503,6 +507,11 @@ function ContactsScreen(props: any) {
       setTempPrompt('');
     }
   }, [tempPrompt, selectedContact, handleMessageGeneration]);
+
+  const handleScheduleMessage = useCallback((contact: ContactItem) => {
+    setSelectedContactForSchedule(contact);
+    setIsScheduleModalVisible(true);
+  }, []);
 
   const handleCloseModal = useCallback(() => {
     setIsCustomPromptModalVisible(false);
@@ -805,6 +814,20 @@ function ContactsScreen(props: any) {
                       </ThemedText>
                     </>
                   )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.scheduleButton,
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)',
+                      borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.9)',
+                      backdropFilter: 'blur(10px)',
+                    },
+                  ]}
+                  onPress={() => handleScheduleMessage(item)}
+                  disabled={loadingState !== null}
+                >
+                  <Calendar size={20} color={colors.accent} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1115,6 +1138,18 @@ function ContactsScreen(props: any) {
         prompt={tempPrompt}
         onChangePrompt={setTempPrompt}
       />
+      <ScheduleMessageModal
+        visible={isScheduleModalVisible}
+        contact={selectedContactForSchedule}
+        onClose={() => {
+          setIsScheduleModalVisible(false);
+          setSelectedContactForSchedule(null);
+        }}
+        onSchedule={(scheduledTime, messageType, customPrompt) => {
+          // Schedule message logic will be implemented with the edge function
+          console.log('Scheduling message:', { scheduledTime, messageType, customPrompt });
+        }}
+      />
       <RevenueCatPaywallModal
         visible={showPaywall}
         errorType={'messages'}
@@ -1230,6 +1265,20 @@ const styles = StyleSheet.create({
   },
   messageButtonGenerating: {
     opacity: 0.7,
+  },
+  scheduleButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 24,
+    marginLeft: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   loveButton: {
     backgroundColor: '#FF2D55',
