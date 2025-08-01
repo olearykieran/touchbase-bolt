@@ -82,6 +82,15 @@ export default function AddContactScreen() {
     // Don't navigate if there's an error - let paywall show
     const currentError = useContactStore.getState().error;
     if (!currentError) {
+      // Clear the form data after successful submission
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        frequency: 'weekly',
+        birthday: undefined,
+        firstContactDate: undefined,
+      });
       router.push('/(tabs)/' as any);
     } else {
       console.log('[AddContactScreen] Error after addContact:', currentError);

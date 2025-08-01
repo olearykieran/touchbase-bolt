@@ -14,8 +14,12 @@ const expo = new ExpoSdk.Expo({
   accessToken: Deno.env.get('EXPO_ACCESS_TOKEN')!,
 });
 
-// Define the time window (e.g., check for contacts due in the next 5 minutes)
-const NOTIFICATION_WINDOW_MINUTES = 15;
+// Define the time windows for different notification types
+const NOTIFICATION_WINDOWS = {
+  '60min': { minutes: 60, message: 'You have 1 hour to reach out to' },
+  '15min': { minutes: 15, message: 'Time to reach out to' },
+  '5min': { minutes: 5, message: 'Last reminder! Don\'t forget to reach out to' }
+};
 
 serve(async (req: Request) => {
   try {
@@ -26,24 +30,21 @@ serve(async (req: Request) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const now = new Date();
-    // Look slightly behind to catch jobs that might have been missed by milliseconds
-    const windowStart = new Date(now.getTime() - 1 * 60 * 1000); // 1 minute ago
-    const windowEnd = new Date(
-      now.getTime() + NOTIFICATION_WINDOW_MINUTES * 60 * 1000
-    );
+    // Look for contacts due in the next 65 minutes (to catch all notification windows)
+    const windowStart = new Date(now.getTime() - 5 * 60 * 1000); // 5 minutes ago
+    const windowEnd = new Date(now.getTime() + 65 * 60 * 1000); // 65 minutes ahead
 
     console.log(
       `Checking for contacts due between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`
     );
 
-    // 1. Find contacts due within the adjusted window
+    // 1. Find contacts due within the window
     const { data: contacts, error: contactsError } = await supabaseAdmin
       .from('contacts')
       .select('id, name, user_id, next_contact')
-      .lte('next_contact', windowEnd.toISOString()) // Due before window end
-      .gte('next_contact', windowStart.toISOString()); // Due after window start (catches recently passed)
-    // Optional: Add a check to prevent re-sending notifications too quickly
-    // .or(`last_notification_sent_at.is.null,last_notification_sent_at.<=${new Date(now.getTime() - NOTIFICATION_WINDOW_MINUTES * 60 * 1000).toISOString()}`)
+      .lte('next_contact', windowEnd.toISOString())
+      .gte('next_contact', windowStart.toISOString());
+      
     if (contactsError) throw contactsError;
     if (!contacts || contacts.length === 0) {
       console.log('No contacts due for notification.');
@@ -58,7 +59,14 @@ serve(async (req: Request) => {
     const messages = [];
     const userIdsToNotify = [...new Set(contacts.map((c) => c.user_id))]; // Unique user IDs
 
-    // 2. Get push tokens for the relevant users using the ADMIN client
+    // 2. Get push tokens AND notification preferences for the relevant users
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, notify_1hr, notify_15min, notify_5min')
+      .in('id', userIdsToNotify);
+      
+    if (profilesError) throw profilesError;
+    
     const { data: tokens, error: tokensError } = await supabaseAdmin
       .from('push_tokens')
       .select('user_id, token')
@@ -71,7 +79,7 @@ serve(async (req: Request) => {
         JSON.stringify({ message: 'No push tokens found for users.' }),
         {
           headers: { 'Content-Type': 'application/json' },
-          status: 200, // Or potentially an error status if expected tokens are missing
+          status: 200,
         }
       );
     }
@@ -80,21 +88,70 @@ serve(async (req: Request) => {
       `Found ${tokens.length} tokens for ${userIdsToNotify.length} users.`
     );
 
-    // Map tokens by user_id for easy lookup
+    // Map tokens and preferences by user_id for easy lookup
     const userTokensMap = new Map<string, string[]>();
     tokens.forEach((t) => {
       const userTokens = userTokensMap.get(t.user_id) || [];
       userTokens.push(t.token);
       userTokensMap.set(t.user_id, userTokens);
     });
+    
+    const userPrefsMap = new Map<string, any>();
+    profiles?.forEach((p) => {
+      userPrefsMap.set(p.id, {
+        notify_1hr: p.notify_1hr,
+        notify_15min: p.notify_15min,
+        notify_5min: p.notify_5min
+      });
+    });
 
-    // 3. Prepare notification messages
+    // 3. Prepare notification messages based on time windows
     for (const contact of contacts) {
       const userTokens = userTokensMap.get(contact.user_id);
+      const userPrefs = userPrefsMap.get(contact.user_id);
+      
       if (!userTokens || userTokens.length === 0) {
         console.log(
           `No token found for user ${contact.user_id} (contact ${contact.id})`
         );
+        continue;
+      }
+      
+      if (!userPrefs) {
+        console.log(`No preferences found for user ${contact.user_id}`);
+        continue;
+      }
+
+      const contactTime = new Date(contact.next_contact);
+      const minutesUntilDue = Math.floor((contactTime.getTime() - now.getTime()) / (60 * 1000));
+      
+      // Determine which notification to send based on time until due
+      let notificationType: string | null = null;
+      let title = '';
+      let body = '';
+      
+      // Check 60-minute window (between 55-65 minutes)
+      if (minutesUntilDue >= 55 && minutesUntilDue <= 65 && userPrefs.notify_1hr) {
+        notificationType = '60min';
+        title = 'Reminder: Contact coming up';
+        body = `${NOTIFICATION_WINDOWS['60min'].message} ${contact.name}`;
+      }
+      // Check 15-minute window (between 10-20 minutes)
+      else if (minutesUntilDue >= 10 && minutesUntilDue <= 20 && userPrefs.notify_15min) {
+        notificationType = '15min';
+        title = 'Time to reconnect!';
+        body = `${NOTIFICATION_WINDOWS['15min'].message} ${contact.name} in the next 15 minutes`;
+      }
+      // Check 5-minute window (between 0-10 minutes)
+      else if (minutesUntilDue >= 0 && minutesUntilDue <= 10 && userPrefs.notify_5min) {
+        notificationType = '5min';
+        title = 'Last reminder!';
+        body = `${NOTIFICATION_WINDOWS['5min'].message} ${contact.name} - only ${minutesUntilDue} minutes left!`;
+      }
+      
+      // Skip if no notification should be sent at this time
+      if (!notificationType) {
+        console.log(`Contact ${contact.name} not in any notification window (${minutesUntilDue} minutes until due)`);
         continue;
       }
 
@@ -109,13 +166,11 @@ serve(async (req: Request) => {
         messages.push({
           to: pushToken,
           sound: 'default',
-          title: 'Time to reconnect!',
-          body: `It's time to reach out to ${contact.name} soon!`,
-          data: { contactId: contact.id }, // Optional data payload
+          title,
+          body,
+          data: { contactId: contact.id, notificationType },
         });
       }
-      // Optional: Update last_notification_sent_at for the contact here
-      // await supabase.from('contacts').update({ last_notification_sent_at: new Date().toISOString() }).eq('id', contact.id);
     }
 
     if (messages.length === 0) {

@@ -175,6 +175,25 @@ export async function scheduleNotificationsForContacts() {
 
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
+    
+    // First get user's notification preferences
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('notify_1hr, notify_15min, notify_5min')
+      .eq('id', user.id)
+      .single();
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return;
+    }
+    
     const { data: contacts, error } = await supabase
       .from('contacts')
       .select('*');
@@ -184,27 +203,55 @@ export async function scheduleNotificationsForContacts() {
       if (contact.next_contact) {
         const nextContactDate = new Date(contact.next_contact);
         if (nextContactDate > new Date()) {
-          // Calculate trigger time 10 minutes before nextContactDate
-          const triggerTime = new Date(
-            nextContactDate.getTime() - 15 * 60 * 1000
-          );
-
-          // Ensure trigger time is still in the future before scheduling
-          if (triggerTime > new Date()) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: 'Time to reconnect!',
-                body: `It's time to reach out to ${contact.name} soon!`,
-                data: { contactId: contact.id },
-              },
-              trigger: triggerTime,
-            });
-          } else {
-            console.log(
-              `Skipping past notification trigger for ${
-                contact.name
-              } (Next Contact: ${nextContactDate.toISOString()})`
+          // Schedule 60-minute reminder
+          if (profile?.notify_1hr) {
+            const trigger60min = new Date(
+              nextContactDate.getTime() - 60 * 60 * 1000
             );
+            if (trigger60min > new Date()) {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: 'Reminder: Contact coming up',
+                  body: `You have 1 hour to reach out to ${contact.name}`,
+                  data: { contactId: contact.id, reminderType: '60min' },
+                },
+                trigger: trigger60min,
+              });
+            }
+          }
+          
+          // Schedule 15-minute reminder
+          if (profile?.notify_15min) {
+            const trigger15min = new Date(
+              nextContactDate.getTime() - 15 * 60 * 1000
+            );
+            if (trigger15min > new Date()) {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: 'Time to reconnect!',
+                  body: `Reach out to ${contact.name} in the next 15 minutes`,
+                  data: { contactId: contact.id, reminderType: '15min' },
+                },
+                trigger: trigger15min,
+              });
+            }
+          }
+          
+          // Schedule 5-minute reminder
+          if (profile?.notify_5min) {
+            const trigger5min = new Date(
+              nextContactDate.getTime() - 5 * 60 * 1000
+            );
+            if (trigger5min > new Date()) {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: 'Last reminder!',
+                  body: `Don't forget to reach out to ${contact.name} - only 5 minutes left!`,
+                  data: { contactId: contact.id, reminderType: '5min' },
+                },
+                trigger: trigger5min,
+              });
+            }
           }
         }
       }

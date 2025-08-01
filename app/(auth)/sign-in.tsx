@@ -15,6 +15,8 @@ import {
   Image,
   Animated,
   Alert,
+  ImageBackground,
+  SafeAreaView,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { ThemeProvider, useTheme } from '../../components/ThemeProvider';
@@ -22,6 +24,7 @@ import { Asset } from 'expo-asset';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { facebookAds } from '@/services/facebookAds';
+import { Mail, Lock } from 'lucide-react-native';
 
 function SignInInner() {
   const [email, setEmail] = useState('');
@@ -74,18 +77,29 @@ function SignInInner() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View
-            style={[styles.formContainer, { backgroundColor: colors.card }]}
+    <ImageBackground 
+      source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      imageStyle={{ opacity: 0.02 }}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
           >
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View
+                style={[styles.formContainer, { 
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(40, 40, 40, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(20px)',
+                  borderWidth: 1,
+                  borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                }]}
+              >
             <ThemedText style={[styles.title, { color: colors.text }]}>
               Welcome Back
             </ThemedText>
@@ -95,50 +109,66 @@ function SignInInner() {
               Sign in to continue
             </ThemedText>
             {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark' ? '#181818' : colors.white,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              autoComplete="email"
-              autoCorrect={false}
-              placeholderTextColor={colors.secondaryText}
-            />
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark' ? '#181818' : colors.white,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              textContentType="password"
-              autoComplete="password"
-              placeholderTextColor={colors.secondaryText}
-            />
+            <View style={styles.inputContainer}>
+              <Mail size={20} color={colors.mutedText} style={styles.inputIcon} />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    borderBottomWidth: 2,
+                    borderBottomColor: colors.border,
+                    color: colors.text,
+                    paddingLeft: 40,
+                  },
+                ]}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                autoCorrect={false}
+                placeholderTextColor={colors.mutedText}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Lock size={20} color={colors.mutedText} style={styles.inputIcon} />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    borderBottomWidth: 2,
+                    borderBottomColor: colors.border,
+                    color: colors.text,
+                    paddingLeft: 40,
+                  },
+                ]}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                textContentType="password"
+                autoComplete="password"
+                placeholderTextColor={colors.mutedText}
+              />
+            </View>
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: colors.accent },
+                { 
+                  backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.6)' : 'rgba(113, 113, 122, 0.5)',
+                  borderWidth: 1,
+                  borderColor: colors.accent,
+                  backdropFilter: 'blur(20px)',
+                  shadowColor: colors.accent,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                  elevation: 8,
+                },
                 loading && styles.buttonDisabled,
               ]}
               onPress={handleSignIn}
@@ -205,9 +235,9 @@ function SignInInner() {
                   style={[
                     styles.input,
                     {
-                      backgroundColor: colorScheme === 'dark' ? '#181818' : colors.white,
-                      borderWidth: 1,
-                      borderColor: colors.border,
+                      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                      borderBottomWidth: 2,
+                      borderBottomColor: colors.border,
                       color: colors.text,
                       fontSize: 24,
                       textAlign: 'center',
@@ -219,12 +249,22 @@ function SignInInner() {
                   onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
                   keyboardType="number-pad"
                   maxLength={6}
-                  placeholderTextColor={colors.secondaryText}
+                  placeholderTextColor={colors.mutedText}
                 />
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    { backgroundColor: colors.accent },
+                    { 
+                      backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.6)' : 'rgba(113, 113, 122, 0.5)',
+                      borderWidth: 1,
+                      borderColor: colors.accent,
+                      backdropFilter: 'blur(20px)',
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 12,
+                      elevation: 8,
+                    },
                     loading && styles.buttonDisabled,
                   ]}
                   onPress={async () => {
@@ -300,10 +340,12 @@ function SignInInner() {
                 </Animated.Text>
               </>
             )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -318,15 +360,13 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
-    padding: 16,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
+    padding: 16,
   },
   formContainer: {
-    backgroundColor: 'white',
     padding: 24,
     borderRadius: 16,
     shadowColor: '#000',
@@ -334,7 +374,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    marginTop: 160,
+    marginTop: 120,
+  },
+  inputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    zIndex: 1,
   },
   title: {
     fontSize: 24,
@@ -350,13 +400,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    borderWidth: 0,
   },
   button: {
     backgroundColor: '#9d9e9e',

@@ -10,8 +10,8 @@ import * as Device from 'expo-device';
 import { supabase } from '../lib/supabase';
 import { facebookAds } from './facebookAds';
 
-// RevenueCat API Key - from your RevenueCat dashboard
-const REVENUECAT_API_KEY = 'appl_uQuEWLwAuYjhYWhtEmNbarnyiob';
+// RevenueCat API Key - from environment variables
+const REVENUECAT_API_KEY = Constants.expoConfig?.extra?.REVENUECAT_API_KEY || process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
 
 export type SubscriptionPlan = 'monthly' | 'yearly';
 
@@ -23,6 +23,11 @@ export class RevenueCatPaymentService {
   static async initialize() {
     try {
       // Initializing RevenueCat
+      
+      // Check if API key exists
+      if (!REVENUECAT_API_KEY) {
+        throw new Error('RevenueCat API key not found in environment variables');
+      }
       
       // Configure RevenueCat
       if (Platform.OS === 'ios') {
