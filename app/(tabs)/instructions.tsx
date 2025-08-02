@@ -144,6 +144,27 @@ export default function InstructionsScreen() {
           </ThemedText>
         </View>
 
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+            Troubleshooting
+          </ThemedText>
+          <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
+            🔧 Changing Reminder Times
+          </ThemedText>
+          <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
+            If a contact's reminder is not scheduled for the correct time, you can:
+          </ThemedText>
+          <ThemedText style={[styles.substep, { color: colors.secondaryText, marginLeft: 32 }]}>
+            1. Delete the contact (swipe left on the contact)
+          </ThemedText>
+          <ThemedText style={[styles.substep, { color: colors.secondaryText, marginLeft: 32 }]}>
+            2. Add them again with the correct "First Reminder" time
+          </ThemedText>
+          <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
+            Note: Currently, there's no way to edit reminder times after a contact is created.
+          </ThemedText>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

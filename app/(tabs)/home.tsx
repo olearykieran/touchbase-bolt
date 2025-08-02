@@ -98,7 +98,6 @@ export default function HomeScreen() {
           source={require('@/assets/images/icon.png')}
           style={styles.logo}
         />
-        <ThemedText style={[styles.title, { color: colors.text }]}>KeepTouch</ThemedText>
       </View>
 
       <View style={styles.infoSection}>
@@ -137,7 +136,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 80,
     height: 80,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,

@@ -30,7 +30,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
 import { useContactStore } from '@/lib/store';
 import { router } from 'expo-router';
-import { UserPlus, Users, User, Phone, Mail } from 'lucide-react-native';
+import { UserPlus, Users, User, Phone, Mail, Info } from 'lucide-react-native';
 import ContactPickerModal from '@/components/ContactPickerModal';
 import Notifications from 'expo-notifications';
 
@@ -233,7 +233,7 @@ export default function AddContactScreen() {
         );
         
         // Track purchase in Facebook Ads
-        const amount = plan === 'monthly' ? 2.99 : 12.99;
+        const amount = plan === 'monthly' ? 4.99 : 49.99;
         await facebookAds.trackPurchase(amount, 'USD', plan);
         
         // Show success message
@@ -512,6 +512,15 @@ export default function AddContactScreen() {
                     : 'Select Date & Time'}
                 </ThemedText>
               </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.noteContainer}>
+          <View style={styles.noteContent}>
+            <Info size={16} color={colors.secondaryText} style={styles.noteIcon} />
+            <ThemedText style={[styles.noteText, { color: colors.secondaryText }]}>
+              Note: The "First Reminder" time sets when reminders will be sent. If not specified, reminders will be scheduled at the current time when you add the contact.
+            </ThemedText>
           </View>
         </View>
       </View>
@@ -879,5 +888,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ccc',
+  },
+  noteContainer: {
+    backgroundColor: 'rgba(113, 113, 122, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    marginBottom: 16,
+  },
+  noteContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  noteIcon: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  noteText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
   },
 });

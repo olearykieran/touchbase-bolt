@@ -13,8 +13,8 @@ KeepTouch is a relationship management app that helps users maintain connections
 ## 3. Subscription Services
 
 ### Auto-Renewable Subscriptions
-- **Monthly Premium**: $2.99/month
-- **Yearly Premium**: $12.99/year (save 64%)
+- **Monthly Premium**: $4.99/month
+- **Yearly Premium**: $49.99/year
 
 ### Features Include:
 - Unlimited contacts

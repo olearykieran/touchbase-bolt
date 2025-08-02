@@ -254,12 +254,12 @@ export class RevenueCatPaymentService {
       // Determine the plan type and amount from the product identifier
       const productId = result.productIdentifier || result.product?.identifier;
       let plan: 'monthly' | 'yearly' = 'monthly';
-      let amount = 2.99;
+      let amount = 4.99;
       
       if (productId) {
         if (productId.includes('yearly') || productId.includes('annual')) {
           plan = 'yearly';
-          amount = 12.99;
+          amount = 49.99;
         }
       }
       

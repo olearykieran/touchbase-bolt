@@ -52,7 +52,7 @@ eas submit --platform ios                      # Submit to App Store
    - Monthly subscription: `com.holygrailstudio.boltexponativewind.monthlysub`
    - Yearly subscription: `com.holygrailstudio.boltexponativewind.yearlysub`
 4. For each subscription:
-   - Set pricing ($2.99/month, $12.99/year)
+   - Set pricing ($4.99/month, $49.99/year)
    - Add localized descriptions
    - **IMPORTANT**: Add review screenshots
    - Submit for review
@@ -91,7 +91,7 @@ The in-app purchases can be accessed as follows:
 2. Complete sign-up/sign-in
 3. Navigate to the Settings tab (bottom navigation)
 4. Tap on "Upgrade to Premium" or similar option
-5. The paywall modal will display with Monthly ($2.99) and Yearly ($12.99) options
+5. The paywall modal will display with Monthly ($4.99) and Yearly ($49.99) options
 6. Select a subscription plan to initiate the purchase flow
 
 Note: The subscriptions are available to all users regardless of region or device configuration.

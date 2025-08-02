@@ -47,7 +47,7 @@ export default function PaywallModal({ visible, onClose, onUpgrade, errorType }:
     const product = products.find(p => 
       p.productId.toLowerCase().includes(type)
     );
-    return product?.localizedPrice || (type === 'monthly' ? '$2.99/mo' : '$12.99/yr');
+    return product?.localizedPrice || (type === 'monthly' ? '$4.99/mo' : '$49.99/yr');
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -79,7 +79,7 @@ export default function PaywallModal({ visible, onClose, onUpgrade, errorType }:
               </TouchableOpacity>
               <TouchableOpacity style={[styles.planButton, { backgroundColor: colors.accent }]} onPress={() => onUpgrade('yearly')}>
                 <Text style={styles.planTitle}>{getProductPrice('yearly')}</Text>
-                <Text style={styles.planDesc}>Save 64% vs monthly</Text>
+                <Text style={styles.planDesc}>Best value - save $10/year</Text>
               </TouchableOpacity>
             </View>
           )}

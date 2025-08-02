@@ -168,7 +168,12 @@ serve(async (req: Request) => {
           sound: 'default',
           title,
           body,
-          data: { contactId: contact.id, notificationType },
+          data: { 
+            contactId: contact.id, 
+            contactName: contact.name,
+            notificationType,
+            reminderType: notificationType 
+          },
         });
       }
     }

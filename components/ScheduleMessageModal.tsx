@@ -14,9 +14,10 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from './ThemeProvider';
 import { ThemedText } from './ThemedText';
-import { X, Clock, MessageCircle, Calendar } from 'lucide-react-native';
+import { X, Clock, MessageCircle, Calendar, AlertCircle } from 'lucide-react-native';
 import { ContactItem } from '@/types/Contact';
 import { supabase } from '@/lib/supabase';
+import * as Notifications from 'expo-notifications';
 
 interface ScheduleMessageModalProps {
   visible: boolean;
@@ -26,12 +27,13 @@ interface ScheduleMessageModalProps {
 }
 
 const MESSAGE_TYPES = [
-  { id: 'default', label: 'Check-in', icon: '👋' },
-  { id: 'birthday', label: 'Birthday', icon: '🎂' },
-  { id: 'holiday', label: 'Holiday', icon: '🎄' },
-  { id: 'congratulations', label: 'Congratulations', icon: '🎉' },
-  { id: 'thinking_of_you', label: 'Thinking of You', icon: '💭' },
-  { id: 'custom', label: 'Custom', icon: '✏️' },
+  { id: 'default', label: 'Regular Message', icon: '💬' },
+  { id: 'love', label: 'Love Message', icon: '❤️' },
+  { id: 'gratitude', label: 'Gratitude Message', icon: '🙏' },
+  { id: 'birthday', label: 'Birthday Message', icon: '🎂' },
+  { id: 'joke', label: 'Random Joke', icon: '😄' },
+  { id: 'fact', label: 'Random Fact', icon: '🧠' },
+  { id: 'custom', label: 'Custom Message', icon: '✏️' },
 ];
 
 const QUICK_TIMES = [
@@ -50,13 +52,37 @@ export default function ScheduleMessageModal({
   onSchedule,
 }: ScheduleMessageModalProps) {
   const { colors, colorScheme } = useTheme();
-  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<Date>(() => {
+    // Default to 15 minutes from now
+    const defaultTime = new Date();
+    defaultTime.setTime(defaultTime.getTime() + (15 * 60 * 1000));
+    return defaultTime;
+  });
+  const [selectedTimeOption, setSelectedTimeOption] = useState<string | null>('In 15 minutes');
   const [selectedMessageType, setSelectedMessageType] = useState('default');
   const [customPrompt, setCustomPrompt] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      // Reset to default 15 minutes from now
+      const defaultTime = new Date();
+      defaultTime.setTime(defaultTime.getTime() + (15 * 60 * 1000));
+      setSelectedTime(defaultTime);
+      setSelectedTimeOption('In 15 minutes');
+      setSelectedMessageType('default');
+      setCustomPrompt('');
+      
+      console.log('Modal opened, reset time to:', defaultTime.toISOString());
+    }
+  }, [visible]);
+
+
   const handleQuickTimeSelect = (option: typeof QUICK_TIMES[0]) => {
+    setSelectedTimeOption(option.label); // Track which option was selected
+    
     if (option.special === 'custom') {
       setShowDatePicker(true);
     } else if (option.special === 'tomorrow9am') {
@@ -65,9 +91,17 @@ export default function ScheduleMessageModal({
       tomorrow.setHours(9, 0, 0, 0);
       setSelectedTime(tomorrow);
     } else if (option.minutes) {
+      const now = new Date();
       const futureTime = new Date();
-      futureTime.setMinutes(futureTime.getMinutes() + option.minutes);
+      futureTime.setTime(futureTime.getTime() + (option.minutes * 60 * 1000));
       setSelectedTime(futureTime);
+      
+      console.log('Time selection:', {
+        now: now.toISOString(),
+        selected: futureTime.toISOString(),
+        minutesAdded: option.minutes,
+        actualDifference: (futureTime.getTime() - now.getTime()) / (60 * 1000)
+      });
     }
   };
 
@@ -78,6 +112,11 @@ export default function ScheduleMessageModal({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Debug logging
+      console.log('Current time:', new Date().toISOString());
+      console.log('Selected time:', selectedTime.toISOString());
+      console.log('Time difference (minutes):', (selectedTime.getTime() - new Date().getTime()) / (60 * 1000));
 
       const { error } = await supabase
         .from('scheduled_messages')
@@ -92,6 +131,41 @@ export default function ScheduleMessageModal({
 
       if (error) throw error;
 
+      // Always update contact immediately when scheduling
+      const { error: updateError } = await supabase
+        .from('contacts')
+        .update({ 
+          last_contact: new Date().toISOString(),
+        })
+        .eq('id', contact.id);
+        
+      if (updateError) {
+        console.error('Error updating contact:', updateError);
+        // Don't fail the whole operation
+      } else {
+        console.log(`Updated contact ${contact.name} timer immediately upon scheduling`);
+      }
+      
+      // Cancel any existing notifications for this contact
+      try {
+        // Get all scheduled notifications
+        const allNotifications = await Notifications.getAllScheduledNotificationsAsync();
+        
+        // Cancel notifications for this contact
+        for (const notification of allNotifications) {
+          if (notification.content.data?.contactId === contact.id) {
+            await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+            console.log(`Cancelled notification ${notification.identifier} for contact ${contact.id}`);
+          }
+        }
+      } catch (notifError) {
+        console.error('Error cancelling notifications:', notifError);
+        // Don't fail the whole operation if notification cancellation fails
+      }
+
+      // Call the onSchedule callback
+      onSchedule(selectedTime, selectedMessageType, customPrompt);
+      
       Alert.alert(
         'Success',
         `Message scheduled for ${selectedTime.toLocaleString()}`,
@@ -140,29 +214,48 @@ export default function ScheduleMessageModal({
                 <Clock size={18} color={colors.text} /> When to send
               </ThemedText>
               <View style={styles.timeOptions}>
-                {QUICK_TIMES.map((option) => (
-                  <TouchableOpacity
-                    key={option.label}
-                    style={[
-                      styles.timeOption,
-                      {
-                        backgroundColor:
-                          colorScheme === 'dark'
+                {QUICK_TIMES.map((option) => {
+                  // Check if this option is selected based on the label
+                  const isSelected = selectedTimeOption === option.label;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.label}
+                      style={[
+                        styles.timeOption,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.accent
+                            : colorScheme === 'dark'
                             ? 'rgba(255, 255, 255, 0.1)'
                             : 'rgba(0, 0, 0, 0.05)',
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => handleQuickTimeSelect(option)}
-                  >
-                    <ThemedText style={{ color: colors.text, fontSize: 14 }}>
-                      {option.label}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
+                          borderColor: isSelected
+                            ? colors.accent
+                            : colors.border,
+                        },
+                      ]}
+                      onPress={() => handleQuickTimeSelect(option)}
+                    >
+                      <ThemedText style={{ 
+                        color: isSelected ? '#fff' : colors.text, 
+                        fontSize: 14 
+                      }}>
+                        {option.label}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
               <ThemedText style={[styles.selectedTime, { color: colors.accent }]}>
                 <Calendar size={16} /> {selectedTime.toLocaleString()}
+              </ThemedText>
+            </View>
+
+            {/* Info about scheduling */}
+            <View style={[styles.infoBox, { backgroundColor: colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.1)' : 'rgba(113, 113, 122, 0.1)', borderColor: colors.border }]}>
+              <AlertCircle size={16} color={colors.secondaryText} style={{ marginRight: 8 }} />
+              <ThemedText style={[styles.infoText, { color: colors.secondaryText, flex: 1 }]}>
+                Scheduling a message counts as contacting this person and will update their reminder timer.
               </ThemedText>
             </View>
 
@@ -260,14 +353,54 @@ export default function ScheduleMessageModal({
         </View>
       </View>
 
-      {showDatePicker && (
+      {showDatePicker && Platform.OS === 'ios' && (
+        <View style={[
+          styles.datePickerContainer,
+          {
+            backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#ffffff',
+          }
+        ]}>
+          <View style={styles.datePickerHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowDatePicker(false)}
+              style={styles.datePickerButton}
+            >
+              <ThemedText style={{ color: colors.accent }}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setShowDatePicker(false)}
+              style={styles.datePickerButton}
+            >
+              <ThemedText style={{ color: colors.accent, fontWeight: '600' }}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <DateTimePicker
+            value={selectedTime}
+            mode="datetime"
+            display="spinner"
+            onChange={(event, date) => {
+              if (date) {
+                setSelectedTime(date);
+                setSelectedTimeOption('Custom time'); // Mark custom time as selected
+              }
+            }}
+            minimumDate={new Date()}
+            textColor={colors.text}
+          />
+        </View>
+      )}
+      
+      {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={selectedTime}
           mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={(event, date) => {
-            setShowDatePicker(Platform.OS === 'android');
-            if (date) setSelectedTime(date);
+            setShowDatePicker(false);
+            if (date) {
+              setSelectedTime(date);
+              setSelectedTimeOption('Custom time'); // Mark custom time as selected
+            }
           }}
           minimumDate={new Date()}
         />
@@ -369,5 +502,46 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  datePickerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  datePickerButton: {
+    padding: 4,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

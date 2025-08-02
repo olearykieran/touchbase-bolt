@@ -37,6 +37,9 @@ import {
 } from '../lib/notificationUtils';
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import * as Sentry from '@sentry/react-native';
+import ScheduledMessageModal from '../components/ScheduledMessageModal';
+import NotificationToast from '../components/NotificationToast';
+import * as SMS from 'expo-sms';
 
 // Check environment variables and capture any issues
 checkEnvironmentVariables();
@@ -49,6 +52,24 @@ interface RootLayoutNavProps {
   showNotifModal: boolean;
   setShowNotifModal: (visible: boolean) => void;
   handleRequestNotifications: () => void;
+  scheduledMessageData: {
+    contactId: string;
+    contactName: string;
+    contactPhone?: string;
+    message: string;
+  } | null;
+  setScheduledMessageData: (data: any) => void;
+  notificationToast: {
+    visible: boolean;
+    type: 'reminder' | 'scheduled';
+    title: string;
+    body: string;
+    contactId?: string;
+    contactName?: string;
+    contactPhone?: string;
+    messageContent?: string;
+  } | null;
+  setNotificationToast: (data: any) => void;
 }
 
 function useProtectedRoute(user: any, initializing: boolean) {
@@ -80,6 +101,10 @@ function RootLayoutNav({
   showNotifModal,
   setShowNotifModal,
   handleRequestNotifications,
+  scheduledMessageData,
+  setScheduledMessageData,
+  notificationToast,
+  setNotificationToast,
 }: RootLayoutNavProps) {
   // <-- Receive props
   const { colorScheme, colors } = useTheme(); // <-- useTheme is safe here
@@ -216,6 +241,103 @@ function RootLayoutNav({
       });
     }
   }, [user]);
+
+  // Handle notification responses (when user taps on a notification)
+  useEffect(() => {
+    // Handle notifications received while app is in foreground
+    const receivedListener = Notifications.addNotificationReceivedListener(async (notification) => {
+      console.log('Notification received in foreground:', notification);
+      const { title, body, data } = notification.request.content;
+      
+      if (data?.messageType === 'scheduled' && data?.contactId) {
+        // For scheduled messages, get the contact's phone number
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('phone')
+          .eq('id', data.contactId)
+          .single();
+        
+        // Show scheduled message toast
+        setNotificationToast({
+          visible: true,
+          type: 'scheduled',
+          title: title || 'Scheduled Message',
+          body: body || '',
+          contactId: data.contactId,
+          contactName: title?.replace('Message for ', '') || 'Contact',
+          contactPhone: contact?.phone || data.contactPhone,
+          messageContent: data.messageContent || body,
+        });
+      } else if (data?.contactId && data?.reminderType) {
+        // Show reminder toast
+        setNotificationToast({
+          visible: true,
+          type: 'reminder',
+          title: title || 'Reminder',
+          body: body || '',
+          contactId: data.contactId,
+          contactName: data.contactName,
+        });
+      }
+    });
+
+    // Handle notification taps when app is in foreground
+    const notificationListener = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      console.log('Notification tapped:', response);
+      const data = response.notification.request.content.data;
+      
+      if (data?.contactId && data?.messageType === 'scheduled') {
+        // Get contact details to show in modal
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('id, name, phone')
+          .eq('id', data.contactId)
+          .single();
+          
+        if (contact) {
+          setScheduledMessageData({
+            contactId: contact.id,
+            contactName: contact.name,
+            contactPhone: contact.phone,
+            message: data.messageContent || response.notification.request.content.body,
+          });
+        }
+      }
+    });
+
+    // Handle notification taps when app was closed
+    Notifications.getLastNotificationResponseAsync().then(async response => {
+      if (response) {
+        console.log('Last notification response:', response);
+        const data = response.notification.request.content.data;
+        
+        if (data?.contactId && data?.messageType === 'scheduled') {
+          // Get contact details to show in modal
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('id, name, phone')
+            .eq('id', data.contactId)
+            .single();
+            
+          if (contact) {
+            setTimeout(() => {
+              setScheduledMessageData({
+                contactId: contact.id,
+                contactName: contact.name,
+                contactPhone: contact.phone,
+                message: data.messageContent || response.notification.request.content.body,
+              });
+            }, 500); // Small delay to ensure app is ready
+          }
+        }
+      }
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(receivedListener);
+      Notifications.removeNotificationSubscription(notificationListener);
+    };
+  }, []);
 
   // *** Add this useEffect hook for clearing badge ***
   useEffect(() => {
@@ -464,6 +586,64 @@ function RootLayoutNav({
           </View>
         </View>
       </Modal>
+
+      {/* Scheduled Message Modal */}
+      {scheduledMessageData && (
+        <ScheduledMessageModal
+          visible={!!scheduledMessageData}
+          contactName={scheduledMessageData.contactName}
+          contactPhone={scheduledMessageData.contactPhone}
+          message={scheduledMessageData.message}
+          onClose={() => setScheduledMessageData(null)}
+          onSent={async () => {
+            // Update the contact's last_contact time since message was sent
+            const { error } = await supabase
+              .from('contacts')
+              .update({ last_contact: new Date().toISOString() })
+              .eq('id', scheduledMessageData.contactId);
+              
+            if (error) {
+              console.error('Error updating contact:', error);
+            }
+            
+            setScheduledMessageData(null);
+          }}
+        />
+      )}
+
+      {/* Notification Toast */}
+      {notificationToast && notificationToast.visible && (
+        <NotificationToast
+          visible={notificationToast.visible}
+          type={notificationToast.type}
+          title={notificationToast.title}
+          body={notificationToast.body}
+          contactName={notificationToast.contactName}
+          onAction={async () => {
+            if (notificationToast.type === 'scheduled') {
+              // Send the scheduled message
+              if (notificationToast.contactPhone && notificationToast.messageContent) {
+                const isAvailable = await SMS.isAvailableAsync();
+                if (isAvailable) {
+                  await SMS.sendSMSAsync([notificationToast.contactPhone], notificationToast.messageContent);
+                  
+                  // Update contact if needed (already done when scheduled)
+                  if (notificationToast.contactId) {
+                    // Contact already updated when scheduled
+                  }
+                }
+              }
+            } else {
+              // Navigate to contact for reminders
+              if (notificationToast.contactId) {
+                router.push(`/(tabs)/` as any);
+              }
+            }
+            setNotificationToast(null);
+          }}
+          onDismiss={() => setNotificationToast(null)}
+        />
+      )}
     </>
   );
 }
@@ -511,6 +691,22 @@ function ErrorFallback({ error }: FallbackProps) {
 export default Sentry.wrap(function RootLayout() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifChecked, setNotifChecked] = useState(false);
+  const [scheduledMessageData, setScheduledMessageData] = useState<{
+    contactId: string;
+    contactName: string;
+    contactPhone?: string;
+    message: string;
+  } | null>(null);
+  const [notificationToast, setNotificationToast] = useState<{
+    visible: boolean;
+    type: 'reminder' | 'scheduled';
+    title: string;
+    body: string;
+    contactId?: string;
+    contactName?: string;
+    contactPhone?: string;
+    messageContent?: string;
+  } | null>(null);
 
   // Load Satoshi fonts
   const [fontsLoaded, fontError] = useFonts({
@@ -583,6 +779,10 @@ export default Sentry.wrap(function RootLayout() {
           showNotifModal={showNotifModal}
           setShowNotifModal={setShowNotifModal}
           handleRequestNotifications={handleRequestNotifications}
+          scheduledMessageData={scheduledMessageData}
+          setScheduledMessageData={setScheduledMessageData}
+          notificationToast={notificationToast}
+          setNotificationToast={setNotificationToast}
         />
       </ErrorBoundary>
     </ThemeProvider>

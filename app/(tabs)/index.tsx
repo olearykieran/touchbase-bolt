@@ -1145,9 +1145,11 @@ function ContactsScreen(props: any) {
           setIsScheduleModalVisible(false);
           setSelectedContactForSchedule(null);
         }}
-        onSchedule={(scheduledTime, messageType, customPrompt) => {
+        onSchedule={async (scheduledTime, messageType, customPrompt) => {
           // Schedule message logic will be implemented with the edge function
           console.log('Scheduling message:', { scheduledTime, messageType, customPrompt });
+          // Refresh contacts to update the UI with new timer if within 24hr window
+          await fetchContacts();
         }}
       />
       <RevenueCatPaywallModal

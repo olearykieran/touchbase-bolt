@@ -64,7 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'KeepTouch',
+          title: '',
           headerLeft: () => (
             <TouchableOpacity
               style={{ marginLeft: 16, padding: 8 }}

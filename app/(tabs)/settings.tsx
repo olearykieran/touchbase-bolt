@@ -59,6 +59,9 @@ export default function SettingsScreen() {
   const { theme, colorScheme, setTheme, colors } = useTheme();
   const headerHeight = useHeaderHeight();
   const [notifications, setNotifications] = useState(true);
+  const [notify5min, setNotify5min] = useState(true);
+  const [notify15min, setNotify15min] = useState(true);
+  const [notify1hr, setNotify1hr] = useState(true);
   const [notificationStatus, setNotificationStatus] = useState<string>('');
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<string>('Loading...');
@@ -102,6 +105,9 @@ export default function SettingsScreen() {
     
     // Fetch user email
     fetchUserEmail();
+    
+    // Fetch notification preferences
+    fetchNotificationPreferences();
   }, []);
 
   useEffect(() => {
@@ -149,6 +155,7 @@ export default function SettingsScreen() {
       // await scheduleNotificationsForContacts(); // Use imported function - COMMENTED OUT
     }
 
+    // Update the state
     switch (setting) {
       case 'notifications':
         setNotifications(value);
@@ -156,10 +163,49 @@ export default function SettingsScreen() {
           // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
         }
         break;
-      default:
-        // For other settings, just update the state
-        // await Notifications.cancelAllScheduledNotificationsAsync(); // COMMENTED OUT
+      case 'notify_5min':
+        setNotify5min(value);
         break;
+      case 'notify_15min':
+        setNotify15min(value);
+        break;
+      case 'notify_1hr':
+        setNotify1hr(value);
+        break;
+      default:
+        break;
+    }
+
+    // Update the profile in database for notification preferences
+    if (['notify_5min', 'notify_15min', 'notify_1hr'].includes(setting)) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({ [setting]: value })
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('Error updating notification preference:', error);
+          // Revert the state on error
+          switch (setting) {
+            case 'notify_5min':
+              setNotify5min(!value);
+              break;
+            case 'notify_15min':
+              setNotify15min(!value);
+              break;
+            case 'notify_1hr':
+              setNotify1hr(!value);
+              break;
+          }
+          Alert.alert('Error', 'Failed to update notification preference');
+        }
+      } catch (error) {
+        console.error('Error in toggleNotificationSetting:', error);
+      }
     }
   };
 
@@ -292,6 +338,32 @@ export default function SettingsScreen() {
     }
   };
 
+  const fetchNotificationPreferences = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('notify_5min, notify_15min, notify_1hr')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching notification preferences:', error);
+        return;
+      }
+
+      if (data) {
+        setNotify5min(data.notify_5min ?? true);
+        setNotify15min(data.notify_15min ?? true);
+        setNotify1hr(data.notify_1hr ?? true);
+      }
+    } catch (error) {
+      console.error('Error in fetchNotificationPreferences:', error);
+    }
+  };
+
   const fetchSubscriptionStatus = async () => {
     try {
       setIsLoading(true); // Start loading indicator
@@ -344,9 +416,9 @@ export default function SettingsScreen() {
       // Format the subscription status nicely
       let displayStatus = 'Free';
       if (data.subscription_status === 'monthly') {
-        displayStatus = 'Monthly ($2.99/month)';
+        displayStatus = 'Monthly ($4.99/month)';
       } else if (data.subscription_status === 'yearly') {
-        displayStatus = 'Yearly ($12.99/year)';
+        displayStatus = 'Yearly ($49.99/year)';
       }
 
       console.log('Setting subscription status to:', displayStatus);
@@ -516,10 +588,66 @@ export default function SettingsScreen() {
             onValueChange={(value) =>
               toggleNotificationSetting('notifications', value)
             }
-            trackColor={{ false: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)', true: colors.accent + '55' }}
-            thumbColor={notifications ? colors.accent : colorScheme === 'dark' ? '#e5e5ea' : '#f4f3f4'}
+            trackColor={{ false: colorScheme === 'dark' ? '#3e3e3e' : '#767577', true: colorScheme === 'dark' ? '#71717a' : colors.accent }}
+            thumbColor={notifications ? '#ffffff' : colorScheme === 'dark' ? '#8e8e93' : '#f4f3f4'}
+            ios_backgroundColor={colorScheme === 'dark' ? '#3e3e3e' : '#E5E5EA'}
           />
         </View>
+        
+        {notifications && (
+          <>
+            <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
+              <View style={styles.settingInfo}>
+                <Clock size={24} color={colors.accent} />
+                <ThemedText style={[styles.settingText]}>60-minute reminder</ThemedText>
+              </View>
+              <Switch
+                value={notify1hr}
+                onValueChange={(value) =>
+                  toggleNotificationSetting('notify_1hr', value)
+                }
+                disabled={!notifications}
+                trackColor={{ false: colorScheme === 'dark' ? '#3e3e3e' : '#767577', true: colorScheme === 'dark' ? '#71717a' : colors.accent }}
+                thumbColor={notify1hr ? '#ffffff' : colorScheme === 'dark' ? '#8e8e93' : '#f4f3f4'}
+                ios_backgroundColor={colorScheme === 'dark' ? '#3e3e3e' : '#E5E5EA'}
+              />
+            </View>
+            
+            <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
+              <View style={styles.settingInfo}>
+                <Clock size={24} color={colors.accent} />
+                <ThemedText style={[styles.settingText]}>15-minute reminder</ThemedText>
+              </View>
+              <Switch
+                value={notify15min}
+                onValueChange={(value) =>
+                  toggleNotificationSetting('notify_15min', value)
+                }
+                disabled={!notifications}
+                trackColor={{ false: colorScheme === 'dark' ? '#3e3e3e' : '#767577', true: colorScheme === 'dark' ? '#71717a' : colors.accent }}
+                thumbColor={notify15min ? '#ffffff' : colorScheme === 'dark' ? '#8e8e93' : '#f4f3f4'}
+                ios_backgroundColor={colorScheme === 'dark' ? '#3e3e3e' : '#E5E5EA'}
+              />
+            </View>
+            
+            <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
+              <View style={styles.settingInfo}>
+                <Clock size={24} color={colors.accent} />
+                <ThemedText style={[styles.settingText]}>5-minute reminder</ThemedText>
+              </View>
+              <Switch
+                value={notify5min}
+                onValueChange={(value) =>
+                  toggleNotificationSetting('notify_5min', value)
+                }
+                disabled={!notifications}
+                trackColor={{ false: colorScheme === 'dark' ? '#3e3e3e' : '#767577', true: colorScheme === 'dark' ? '#71717a' : colors.accent }}
+                thumbColor={notify5min ? '#ffffff' : colorScheme === 'dark' ? '#8e8e93' : '#f4f3f4'}
+                ios_backgroundColor={colorScheme === 'dark' ? '#3e3e3e' : '#E5E5EA'}
+              />
+            </View>
+          </>
+        )}
       </View>
 
       {/* Theme Section */}
@@ -990,7 +1118,7 @@ export default function SettingsScreen() {
             console.log(`RevenueCat purchase successful for ${plan} plan`);
             
             // Track purchase in Facebook Ads
-            const amount = plan === 'monthly' ? 2.99 : 12.99;
+            const amount = plan === 'monthly' ? 4.99 : 49.99;
             await facebookAds.trackPurchase(amount, 'USD', plan);
             
             // Show success message
