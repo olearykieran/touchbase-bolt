@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>KeepTouch</string>
+    <string>KeepTouch RE</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.9</string>
+    <string>1.0</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -27,20 +27,20 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>touchbasebolt</string>
-          <string>com.holygrailstudio.boltexponativewind</string>
+          <string>keeptouchre</string>
+          <string>com.holygrailstudio.keeptouchre</string>
         </array>
       </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>exp+bolt-expo-nativewind</string>
+          <string>exp+keeptouch-re</string>
         </array>
       </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>fb726780603465450</string>
+          <string>fb1273629160842366</string>
         </array>
       </dict>
     </array>
@@ -49,15 +49,15 @@
     <key>FacebookAdvertiserIDCollectionEnabled</key>
     <true/>
     <key>FacebookAppID</key>
-    <string>726780603465450</string>
+    <string>1273629160842366</string>
     <key>FacebookAutoInitEnabled</key>
     <true/>
     <key>FacebookAutoLogAppEventsEnabled</key>
     <true/>
     <key>FacebookClientToken</key>
-    <string>239d9475c26e42921cf4686f96d8b3fc</string>
+    <string>12441618a68d6a28489e4b9dc31f72ee</string>
     <key>FacebookDisplayName</key>
-    <string>KeepTouch</string>
+    <string>KeepTouch RE</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSApplicationQueriesSchemes</key>
@@ -81,7 +81,7 @@
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
     <key>NSContactsUsageDescription</key>
-    <string>KeepTouch needs access to your contacts to help you maintain connections with important people. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.</string>
+    <string>KeepTouch RE needs access to your contacts to help you maintain professional relationships with clients and referral partners. We use this data locally on your device to remind you when to reach out, but we do not upload or store your contacts on our servers.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSUserActivityTypes</key>

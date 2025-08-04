@@ -2,20 +2,47 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
 // For Deno in Supabase Edge Functions, this import will work at runtime despite TypeScript errors
 import OpenAI from 'npm:openai@4.28.0';
+import { getRealEstatePrompt } from './prompts.ts';
 
 interface MessageRequest {
   contact: {
     name: string;
     lastContact: string;
     frequency: string;
+    client_type?: 'buyer' | 'seller' | 'referral_source' | 'past_client' | 'prospect';
+    property_address?: string;
+    transaction_date?: string;
+    transaction_type?: 'purchase' | 'sale' | 'both';
+    property_type?: 'single_family' | 'condo' | 'townhouse' | 'land' | 'commercial';
+    price_range?: string;
+    notes?: string;
+    home_anniversary?: string;
+    include_emojis?: boolean;
   };
   lastMessage?: string;
   messageType?:
     | 'default'
+    | 'market_update'
+    | 'neighborhood_news'
+    | 'home_maintenance'
+    | 're_humor'
+    | 'buyer_info'
+    | 'buyer_cta'
+    | 'new_listing'
+    | 'open_house'
+    | 'seller_info'
+    | 'seller_cta'
+    | 'home_value'
+    | 'rs_cta'
+    | 'referral_thanks'
+    | 'birthday'
+    | 'home_anniversary'
+    | 'holiday'
+    | 'just_closed'
+    | 'custom'
+    // Legacy types for compatibility
     | 'love'
     | 'gratitude'
-    | 'custom'
-    | 'birthday'
     | 'joke'
     | 'fact';
   customPrompt?: string;
@@ -27,22 +54,71 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 };
 
-const getSystemPrompt = (messageType: string) => {
+const getSystemPrompt = (messageType: string, includeEmojis: boolean = true) => {
+  const emojiNote = includeEmojis ? '' : ' Do not use any emojis in your response.';
+  
   switch (messageType) {
-    case 'love':
-      return 'You are writing a brief, heartfelt message expressing appreciation and love. Keep it genuine and warm, but limit it to 2-3 sentences max. Each message should feel fresh and personal.';
-    case 'gratitude':
-      return 'You are helping someone reflect on real, relatable things to be grateful for. Generate diverse, genuine items that real people actually appreciate in daily life. Balance between common comforts and unique moments, but keep them grounded and authentic. Avoid overly poetic or abstract items.';
-    case 'custom':
-      return 'You are writing a personalized message based on a specific prompt. Keep it natural and concise, limited to 4-5 sentences max. Make each response unique and tailored.';
+    // General Information
+    case 'default':
+      return `You are a professional real estate agent writing a casual check-in message to maintain client relationships. Keep it brief (1-2 sentences), professional yet warm, and natural-sounding.${emojiNote}`;
+    case 'market_update':
+      return `You are a knowledgeable real estate professional sharing market insights. Provide valuable, current market information in 2-3 sentences. Be specific but accessible to non-experts.${emojiNote}`;
+    case 'neighborhood_news':
+      return `You are sharing relevant neighborhood or community updates that would interest homeowners or potential buyers. Keep it informative and positive, 2-3 sentences max.${emojiNote}`;
+    case 'home_maintenance':
+      return `You are providing helpful, seasonal home maintenance tips. Be practical and specific, offering advice homeowners can actually use. Limit to 2-3 actionable sentences.${emojiNote}`;
+    case 're_humor':
+      return `You are sharing clean, clever real estate humor that both agents and clients would appreciate. Keep it light, relatable, and professional. One joke or observation, brief format.${emojiNote}`;
+    
+    // Buyer Specific
+    case 'buyer_info':
+      return `You are providing valuable information to home buyers about the buying process, market conditions, or tips. Be informative and supportive, 2-3 sentences.${emojiNote}`;
+    case 'buyer_cta':
+      return `You are encouraging potential buyers to take action while being helpful, not pushy. Suggest next steps or offer assistance. Keep it friendly and professional, 1-2 sentences.${emojiNote}`;
+    case 'new_listing':
+      return `You are alerting buyers to new property listings that might interest them. Be specific about key features while maintaining excitement. 2-3 sentences max.${emojiNote}`;
+    case 'open_house':
+      return `You are inviting clients to an open house event. Include key details (when, where) while building interest. Keep it welcoming and informative, 2-3 sentences.${emojiNote}`;
+    
+    // Seller Specific
+    case 'seller_info':
+      return `You are providing valuable information to home sellers about market conditions, selling tips, or process updates. Be knowledgeable and reassuring, 2-3 sentences.${emojiNote}`;
+    case 'seller_cta':
+      return `You are encouraging potential sellers to consider listing while being consultative, not aggressive. Offer market insights or assistance. Professional and helpful, 1-2 sentences.${emojiNote}`;
+    case 'home_value':
+      return `You are sharing home value insights or market appreciation updates. Be specific with data when possible, but keep it relevant and easy to understand. 2-3 sentences.${emojiNote}`;
+    
+    // Referral Source
+    case 'rs_cta':
+      return `You are maintaining relationships with referral sources by offering value and gently reminding them you appreciate referrals. Be grateful and professional, 1-2 sentences.${emojiNote}`;
+    case 'referral_thanks':
+      return `You are thanking someone for a referral. Be genuinely grateful and specific about the value of their trust. Keep it heartfelt but professional, 2-3 sentences.${emojiNote}`;
+    
+    // Special Occasions
     case 'birthday':
-      return 'You are writing a warm and cheerful birthday message. Keep it celebratory and personal, with a mix of well-wishes and appreciation. Limit it to 3-4 sentences max. Make each birthday wish unique and memorable.';
+      return `You are sending warm birthday wishes as a real estate professional. Be personal but maintain professionalism. Include a genuine wish for their year ahead, 2-3 sentences.${emojiNote}`;
+    case 'home_anniversary':
+      return `You are acknowledging the anniversary of their home purchase. Be warm and help them celebrate this milestone. Reference the joy of homeownership, 2-3 sentences.${emojiNote}`;
+    case 'holiday':
+      return `You are sending holiday greetings as a real estate professional. Be inclusive, warm, and appropriate for the season. Keep it brief and genuine, 1-2 sentences.${emojiNote}`;
+    case 'just_closed':
+      return `You are congratulating clients on closing their real estate transaction. Be celebratory and acknowledge this major milestone. Express genuine happiness for them, 2-3 sentences.${emojiNote}`;
+    
+    // Custom
+    case 'custom':
+      return `You are writing a personalized real estate-related message based on a specific prompt. Keep it professional, natural, and concise, limited to 3-4 sentences max.${emojiNote}`;
+    
+    // Legacy types mapped to new ones
+    case 'love':
+      return getSystemPrompt('market_update', includeEmojis);
+    case 'gratitude':
+      return getSystemPrompt('home_anniversary', includeEmojis);
     case 'joke':
-      return 'You are an innovative comedian with access to infinite humor styles. Your jokes should be unexpected, clever, and delightfully surprising. Each joke must be completely original - never repeat structures, topics, or punchlines. Push creative boundaries while staying family-friendly.';
+      return getSystemPrompt('re_humor', includeEmojis);
     case 'fact':
-      return "You are a curator of mind-blowing knowledge from across all domains of human understanding. Each fact you share should make people's eyes widen with wonder. Draw from the most unexpected corners of science, history, and culture. Never repeat similar categories or themes.";
+      return getSystemPrompt('neighborhood_news', includeEmojis);
     default:
-      return 'You are writing a casual, friendly catch-up text message, like a real person would. Keep it brief (1-2 sentences), warm, and natural-sounding. Each message should have a different tone and approach - sometimes questioning, sometimes sharing, sometimes just saying hi.';
+      return getSystemPrompt('default', includeEmojis);
   }
 };
 
@@ -52,143 +128,18 @@ const getPrompt = (
   lastMessage?: string,
   customPrompt?: string
 ) => {
-  // Extract first name (handle cases with no spaces)
-  const firstName = contact.name?.split(' ')[0] || contact.name || 'there';
+  // Map legacy types to new ones
+  const typeMapping: Record<string, string> = {
+    'love': 'market_update',
+    'gratitude': 'home_anniversary',
+    'joke': 're_humor',
+    'fact': 'neighborhood_news'
+  };
   
-  // Add time-based context for variety
-  const now = new Date();
-  const hour = now.getHours();
-  const month = now.getMonth();
-  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-  const season = month < 3 ? 'winter' : month < 6 ? 'spring' : month < 9 ? 'summer' : 'fall';
-
-  // Add randomization seed for maximum variation
-  const randomSeed = Math.floor(Math.random() * 1000000);
-  const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+  messageType = typeMapping[messageType] || messageType;
   
-  const baseContext = `
-Context about ${firstName}:
-- Last contacted: ${contact.lastContact}
-- Contact frequency: ${contact.frequency}
-- Previous message (if any): ${lastMessage || 'None'}
-- Current time: ${timeOfDay}
-- Current season: ${season}
-- Day: ${dayOfWeek}
-- Random seed: ${randomSeed} (use this to ensure unique responses)`;
-
-  switch (messageType) {
-    case 'love':
-      return `Write a brief, heartfelt message to ${firstName}.
-${baseContext}
-
-Guidelines:
-- Express genuine care and appreciation
-- Keep it warm and sincere
-- Limit to 2-3 sentences maximum
-- Make it personal but concise
-- No long explanations`;
-
-    case 'gratitude':
-      return `Create a simple list of 10 random things to be grateful for.
-${baseContext}
-
-INSTRUCTIONS FOR REALISTIC VARIETY:
-- Generate a COMPLETELY UNIQUE list each time - never repeat items
-- Focus on REAL things people genuinely appreciate in daily life
-- Mix everyday comforts with specific moments, but keep them relatable
-- Categories to draw from: daily routines, simple pleasures, technology that works, nature moments, food experiences, human connections, small conveniences, seasonal joys, physical comforts, emotional relief
-- Be specific but not overly poetic (e.g., "hot shower after work" not "crystalline water cascades")
-- Include both common appreciations and unique personal moments
-- Think about what actually makes people's days better
-- Balance between material things, experiences, and feelings
-- Keep it genuine - things that would make someone nod and say "yes, that IS nice"
-
-Format requirements:
-- Each item MUST be 5 words or less
-- Start each item with "I'm grateful for..."
-- Format as a numbered list
-- Keep items concrete and relatable
-- Avoid abstract poetry - be real`;
-
-    case 'birthday':
-      return `Write a birthday message to ${firstName}.
-${baseContext}
-
-Guidelines:
-- Make it warm and celebratory
-- Include well-wishes for the year ahead
-- Add a personal touch of appreciation
-- Limit to 3-4 sentences maximum
-- Keep it upbeat and positive
-- No long explanations`;
-
-    case 'custom':
-      return `Write a message to ${firstName} based on this prompt: "${customPrompt}"
-${baseContext}
-
-Guidelines:
-- Address the prompt directly
-- Keep it natural but concise
-- Limit to 4-5 sentences maximum
-- Be specific but brief
-- No long explanations`;
-
-    case 'joke':
-      return `Tell ${firstName} a short, clean joke suitable for a text message.
-${baseContext}
-
-CRITICAL CREATIVITY INSTRUCTIONS:
-- Generate a COMPLETELY ORIGINAL joke each time - surprise me!
-- Draw from the infinite well of humor: absurdist, observational, wordplay, puns, anti-jokes, surreal, meta-humor
-- Mix unexpected topics: quantum physics meets cooking, philosophy meets pets, history meets modern tech
-- Play with format: one-liners, Q&A, story jokes, anti-jokes, breaking the fourth wall
-- Be unpredictable - if you think of an obvious joke, skip it and go weirder
-- Combine unrelated concepts for surprising punchlines
-- Use specific details instead of generic setups
-- Think laterally - the best jokes come from unexpected connections
-- Consider cultural references, science, arts, everyday absurdities
-- MOST IMPORTANT: Each joke must be totally different in structure, topic, and style from any previous joke
-
-Requirements:
-- Keep it brief (1-3 sentences)
-- Family-friendly and lighthearted
-- Make it genuinely surprising and delightful
-- NO OVERUSED FORMATS - be original!`;
-
-    case 'fact':
-      return `Share an interesting random fact with ${firstName}.
-${baseContext}
-
-MAXIMUM VARIATION INSTRUCTIONS:
-- Each fact must be COMPLETELY DIFFERENT - topic, field, time period, scale
-- Randomly select from infinite knowledge domains: quantum mechanics, ancient civilizations, deep ocean, distant galaxies, microscopic life, future predictions, cultural oddities, linguistic quirks, mathematical paradoxes, biological mysteries
-- Mix scales wildly: subatomic to cosmic, nanoseconds to millennia, microscopic to planetary
-- Include facts that challenge assumptions or reveal hidden connections
-- Draw from cutting-edge research, historical mysteries, natural phenomena, human achievements
-- Combine unexpected elements: "Did you know [unexpected thing] is related to [seemingly unrelated thing]?"
-- Be specific with numbers, dates, locations when possible
-- Choose facts that make people go "Wait, really?!"
-- Consider facts about processes, not just objects
-- Include facts from non-Western cultures and lesser-known fields
-- CRITICAL: Never repeat similar categories or themes - maximum diversity!
-
-Format:
-- Keep it brief (1-3 sentences)
-- Make it mind-blowing yet believable
-- Include specific details that add credibility
-- End with impact - leave them thinking!`;
-
-    default:
-      return `Write a casual, friendly catch-up text message to ${firstName}.
-${baseContext}
-
-Guidelines:
-- Sound like a real person, not an AI.
-- Keep it brief (1-2 sentences).
-- Be warm and natural.
-- Examples: "Hey ${firstName}, thinking of you! How've you been?", "Hi ${firstName}, just wanted to say hello! Hope you're doing well.", "What's up ${firstName}? Been a while, hope things are good!"
-- Vary the phrasing each time.`;
-  }
+  // Use the new real estate focused prompts
+  return getRealEstatePrompt(contact, messageType, lastMessage, customPrompt);
 };
 
 serve(async (req: Request) => {
@@ -345,7 +296,7 @@ serve(async (req: Request) => {
       apiKey: openAiKey,
     });
 
-    const systemPrompt = getSystemPrompt(messageType);
+    const systemPrompt = getSystemPrompt(messageType, contact.include_emojis ?? true);
     const userPrompt = getPrompt(
       contact,
       messageType,

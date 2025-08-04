@@ -577,11 +577,11 @@ export default function SettingsScreen() {
         shadowRadius: 4,
         elevation: 2,
       }]}>
-        <ThemedText style={[styles.sectionTitle]}>Notifications</ThemedText>
+        <ThemedText style={[styles.sectionTitle]}>Client Reminders</ThemedText>
         <View style={styles.setting}>
           <View style={styles.settingInfo}>
             <Bell size={24} color={colors.accent} />
-            <ThemedText style={[styles.settingText]}>Enable Notifications</ThemedText>
+            <ThemedText style={[styles.settingText]}>Enable Client Reminders</ThemedText>
           </View>
           <Switch
             value={notifications}
@@ -599,7 +599,7 @@ export default function SettingsScreen() {
             <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
               <View style={styles.settingInfo}>
                 <Clock size={24} color={colors.accent} />
-                <ThemedText style={[styles.settingText]}>60-minute reminder</ThemedText>
+                <ThemedText style={[styles.settingText]}>60-minute follow-up</ThemedText>
               </View>
               <Switch
                 value={notify1hr}
@@ -616,7 +616,7 @@ export default function SettingsScreen() {
             <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
               <View style={styles.settingInfo}>
                 <Clock size={24} color={colors.accent} />
-                <ThemedText style={[styles.settingText]}>15-minute reminder</ThemedText>
+                <ThemedText style={[styles.settingText]}>15-minute follow-up</ThemedText>
               </View>
               <Switch
                 value={notify15min}
@@ -633,7 +633,7 @@ export default function SettingsScreen() {
             <View style={[styles.setting, { opacity: notifications ? 1 : 0.5 }]}>
               <View style={styles.settingInfo}>
                 <Clock size={24} color={colors.accent} />
-                <ThemedText style={[styles.settingText]}>5-minute reminder</ThemedText>
+                <ThemedText style={[styles.settingText]}>5-minute follow-up</ThemedText>
               </View>
               <Switch
                 value={notify5min}
@@ -732,10 +732,10 @@ export default function SettingsScreen() {
           onPress={async () => {
             try {
               await Share.share({
-                title: 'KeepTouch',
+                title: 'KeepTouch RE',
                 message:
-                  'Stay in touch with the people who matter most! Download KeepTouch: https://apps.apple.com/app/id6501184872',
-                url: 'https://apps.apple.com/app/id6501184872',
+                  'The best CRM for real estate professionals! Never lose touch with clients again. Download KeepTouch RE: https://apps.apple.com/app/keeptouchre',
+                url: 'https://apps.apple.com/app/keeptouchre',
               });
             } catch (error) {
               Alert.alert('Error', 'Unable to share the app.');
@@ -744,7 +744,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.settingInfo}>
             <Share2 size={24} color={colors.accent} />
-            <ThemedText style={[styles.settingText]}>Share App</ThemedText>
+            <ThemedText style={[styles.settingText]}>Share KeepTouch RE</ThemedText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity

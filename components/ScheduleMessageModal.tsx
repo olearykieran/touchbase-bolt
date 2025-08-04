@@ -27,13 +27,35 @@ interface ScheduleMessageModalProps {
 }
 
 const MESSAGE_TYPES = [
-  { id: 'default', label: 'Regular Message', icon: '💬' },
-  { id: 'love', label: 'Love Message', icon: '❤️' },
-  { id: 'gratitude', label: 'Gratitude Message', icon: '🙏' },
-  { id: 'birthday', label: 'Birthday Message', icon: '🎂' },
-  { id: 'joke', label: 'Random Joke', icon: '😄' },
-  { id: 'fact', label: 'Random Fact', icon: '🧠' },
-  { id: 'custom', label: 'Custom Message', icon: '✏️' },
+  // General Information
+  { id: 'default', label: 'General Check-in', icon: '💬', category: 'general' },
+  { id: 'market_update', label: 'Market Update', icon: '📈', category: 'general' },
+  { id: 'neighborhood_news', label: 'Neighborhood News', icon: '📰', category: 'general' },
+  { id: 'home_maintenance', label: 'Home Maintenance Tip', icon: '🔧', category: 'general' },
+  { id: 're_humor', label: 'RE Humor', icon: '😄', category: 'general' },
+  
+  // Buyer Specific
+  { id: 'buyer_info', label: 'Buyer Info', icon: '🏡', category: 'buyer' },
+  { id: 'buyer_cta', label: 'Buyer CTA', icon: '🎯', category: 'buyer' },
+  { id: 'new_listing', label: 'New Listing Alert', icon: '🔔', category: 'buyer' },
+  { id: 'open_house', label: 'Open House Invite', icon: '🚪', category: 'buyer' },
+  
+  // Seller Specific
+  { id: 'seller_info', label: 'Seller Info', icon: '📊', category: 'seller' },
+  { id: 'seller_cta', label: 'Seller CTA', icon: '💰', category: 'seller' },
+  { id: 'home_value', label: 'Home Value Update', icon: '💵', category: 'seller' },
+  
+  // Referral Source
+  { id: 'rs_cta', label: 'Referral Source CTA', icon: '🤝', category: 'referral' },
+  { id: 'referral_thanks', label: 'Referral Thanks', icon: '🙏', category: 'referral' },
+  
+  // Special Occasions
+  { id: 'birthday', label: 'Birthday Message', icon: '🎂', category: 'special' },
+  { id: 'home_anniversary', label: 'Home Anniversary', icon: '🏠', category: 'special' },
+  { id: 'holiday', label: 'Holiday Greeting', icon: '🎄', category: 'special' },
+  { id: 'just_closed', label: 'Just Closed', icon: '🎉', category: 'special' },
+  
+  { id: 'custom', label: 'Custom Message', icon: '✏️', category: 'custom' },
 ];
 
 const QUICK_TIMES = [

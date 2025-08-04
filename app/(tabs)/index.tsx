@@ -64,7 +64,17 @@ interface ContactItem {
   nextContact: string | Date; // Allow string from DB or Date object
   streak?: number; // Make streak optional if not always present initially
   last_contact: string | Date; // Add missing field
-  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'; // Add missing field
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'; // Add missing field
+  // Real estate specific fields
+  client_type?: 'buyer' | 'seller' | 'referral_partner' | 'past_client' | 'prospect';
+  property_address?: string;
+  transaction_date?: string;
+  transaction_type?: 'purchase' | 'sale' | 'both';
+  property_type?: 'single_family' | 'condo' | 'townhouse' | 'land' | 'commercial';
+  price_range?: string;
+  notes?: string;
+  home_anniversary?: string;
+  include_emojis?: boolean;
 }
 
 type LoadingState = {
@@ -1015,7 +1025,7 @@ function ContactsScreen(props: any) {
                       { color: colors.secondaryText, marginBottom: 16 },
                     ]}
                   >
-                    No contacts yet. Add some!
+                    No clients yet. Add your first client!
                   </ThemedText>
 
                   {showOnboarding && onboardingStep === 2 ? (

@@ -19,8 +19,8 @@
         "buildArtifactPaths": ["ios/build/*"]
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://nocqcvnmmoadxhhjgnys.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vY3Fjdm5tbW9hZHhoaGpnbnlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2NDc5OTEsImV4cCI6MjA2MDIyMzk5MX0.Fs86_6lOeWqpYGAeTSGRf8HnmBtPpuKXWtZVf3ENY90"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://fxgfutsyfuuebxjvufeu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4Z2Z1dHN5ZnV1ZWJ4anZ1ZmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MzE5ODksImV4cCI6MjA2OTUwNzk4OX0.u-dfSYeVCQP4kXPyjaXqp8UFiSCih43PrPndlP-8wu4"
       }
     },
     "debug-production": {

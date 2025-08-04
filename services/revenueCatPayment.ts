@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 import { facebookAds } from './facebookAds';
 
 // RevenueCat API Key - from environment variables
-const REVENUECAT_API_KEY = Constants.expoConfig?.extra?.REVENUECAT_API_KEY || process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+const REVENUECAT_API_KEY = 'appl_RGIaqesGFcaVRGWsdCwOpsBCLYa';
 
 export type SubscriptionPlan = 'monthly' | 'yearly';
 
@@ -129,8 +129,8 @@ export class RevenueCatPaymentService {
       try {
         console.log('[RevenueCat] Attempting to fetch products directly...');
         const products = await Purchases.getProducts([
-          'com.holygrailstudio.boltexponativewind.monthlysub',
-          'com.holygrailstudio.boltexponativewind.yearlysub'
+          'com.holygrailstudio.keeptouchre.monthlysub',
+          'com.holygrailstudio.keeptouchre.yearlysub'
         ]);
         
         console.log('[RevenueCat] Direct products fetch result:', products);
@@ -204,8 +204,8 @@ export class RevenueCatPaymentService {
       // No offerings available - try direct product purchase
       console.log('[RevenueCat] No offerings - attempting direct product purchase');
       const productId = plan === 'monthly' 
-        ? 'com.holygrailstudio.boltexponativewind.monthlysub'
-        : 'com.holygrailstudio.boltexponativewind.yearlysub';
+        ? 'com.holygrailstudio.keeptouchre.monthlysub'
+        : 'com.holygrailstudio.keeptouchre.yearlysub';
       
       try {
         const result = await Purchases.purchaseProduct(productId);

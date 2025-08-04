@@ -26,7 +26,7 @@ export default function InstructionsScreen() {
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: colors.text }]}>
-          How to Use KeepTouch
+          How to Use KeepTouch RE
         </ThemedText>
         <View style={{ width: 40 }} />
       </View>
@@ -41,61 +41,61 @@ export default function InstructionsScreen() {
             Getting Started
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: colors.secondaryText }]}>
-            KeepTouch helps you maintain meaningful connections with the important people in your life.
+            KeepTouch RE helps real estate professionals maintain strong relationships with clients, prospects, and referral partners.
           </ThemedText>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Adding Contacts
+            Adding Clients & Contacts
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
             1. Tap the + button on the Contacts page
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            2. Import from your phone's contacts or enter manually
+            2. Import from your phone's contacts or CRM
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            3. Set how often you want to be reminded (daily, weekly, monthly, or quarterly)
+            3. Set follow-up frequency (weekly, monthly, quarterly, or yearly)
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            4. Add birthday and first reminder time (optional)
+            4. Add property details, transaction dates, and notes (optional)
           </ThemedText>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Staying in Touch
+            Client Communication
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
             • Tap "Generate Message" to create AI-powered messages
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            • Choose from different message types: Regular, Love, Gratitude, Birthday, Joke, Fact, or Custom
+            • Choose from: Client Check-in, Market Update, Home Anniversary, Birthday, Maintenance Tips, and more
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
             • Messages open directly in your messaging app
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            • Contact is automatically marked as "contacted" after sending
+            • Client is automatically marked as "contacted" after sending
           </ThemedText>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Understanding Streaks
+            Tracking Client Engagement
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            🔥 Build streaks by contacting people on time
+            🔥 Build engagement streaks by following up with clients on schedule
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            • Personal streaks track consistency with each contact
+            • Individual client streaks track your consistency with each relationship
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            • Global streak tracks overall consistency
+            • Global streak tracks your overall client relationship management
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            • Streaks reset if you miss a scheduled contact
+            • Streaks reset if you miss a scheduled follow-up
           </ThemedText>
         </View>
 
@@ -107,40 +107,40 @@ export default function InstructionsScreen() {
             Free users can:
           </ThemedText>
           <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
-            • Add up to 3 contacts
+            • Add up to 3 clients
           </ThemedText>
           <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
-            • Generate 3 AI messages per week
+            • Generate 3 AI-powered messages per week
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText, marginTop: 8 }]}>
             Premium users get:
           </ThemedText>
           <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
-            • Unlimited contacts
+            • Unlimited clients and contacts
           </ThemedText>
           <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
-            • Unlimited AI messages
+            • Unlimited AI-powered messages
           </ThemedText>
           <ThemedText style={[styles.substep, { color: colors.secondaryText }]}>
-            • Priority support
+            • Priority support for real estate professionals
           </ThemedText>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Tips for Success
+            Best Practices for Real Estate
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            💡 Set realistic contact frequencies - quality over quantity
+            💡 Set follow-up frequencies based on client type (active buyers weekly, past clients quarterly)
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            💡 Add birthdays to never miss important dates
+            💡 Track birthdays and home anniversaries for personalized touchpoints
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            💡 Use custom messages for more personal touches
+            💡 Use custom messages for specific property updates or market insights
           </ThemedText>
           <ThemedText style={[styles.step, { color: colors.secondaryText }]}>
-            💡 Check the app regularly to see who needs attention
+            💡 Review daily to maintain consistent client relationships
           </ThemedText>
         </View>
 

@@ -55,12 +55,26 @@ export default function AddContactScreen() {
     name: '',
     email: '',
     phone: '',
-    frequency: 'weekly',
+    frequency: 'monthly',
     birthday: undefined as Date | undefined,
     firstContactDate: undefined as Date | undefined,
+    client_type: 'prospect' as 'buyer' | 'seller' | 'referral_partner' | 'past_client' | 'prospect',
+    property_address: '',
+    transaction_date: undefined as Date | undefined,
+    property_type: '' as '' | 'single_family' | 'condo' | 'townhouse' | 'land' | 'commercial',
+    price_range: '',
+    notes: '',
+    include_emojis: true,
   });
 
-  const frequencies = ['daily', 'weekly', 'monthly', 'quarterly'];
+  const frequencies = ['weekly', 'monthly', 'quarterly', 'yearly'];
+  const clientTypes = [
+    { value: 'buyer', label: 'Buyer' },
+    { value: 'seller', label: 'Seller' },
+    { value: 'referral_partner', label: 'Referral Partner' },
+    { value: 'past_client', label: 'Past Client' },
+    { value: 'prospect', label: 'Prospect' },
+  ];
 
   const handleSubmit = async () => {
     const submitData: any = {
@@ -68,12 +82,23 @@ export default function AddContactScreen() {
       email: formData.email,
       phone: formData.phone,
       frequency: formData.frequency,
+      client_type: formData.client_type,
+      property_address: formData.property_address,
+      price_range: formData.price_range,
+      notes: formData.notes,
+      include_emojis: formData.include_emojis,
     };
     if (formData.birthday) {
       submitData.birthday = formData.birthday.toISOString().split('T')[0];
     }
     if (formData.firstContactDate) {
       submitData.firstContactDate = formData.firstContactDate;
+    }
+    if (formData.transaction_date) {
+      submitData.transaction_date = formData.transaction_date.toISOString().split('T')[0];
+    }
+    if (formData.property_type) {
+      submitData.property_type = formData.property_type;
     }
 
     console.log('Submitting contact data:', submitData);
@@ -87,9 +112,16 @@ export default function AddContactScreen() {
         name: '',
         email: '',
         phone: '',
-        frequency: 'weekly',
+        frequency: 'monthly',
         birthday: undefined,
         firstContactDate: undefined,
+        client_type: 'prospect',
+        property_address: '',
+        transaction_date: undefined,
+        property_type: '',
+        price_range: '',
+        notes: '',
+        include_emojis: true,
       });
       router.push('/(tabs)/' as any);
     } else {
@@ -410,7 +442,57 @@ export default function AddContactScreen() {
         </View>
 
         <ThemedText style={[styles.label, { color: colors.text }]}>
-          Contact Frequency
+          Client Type
+        </ThemedText>
+        <View style={styles.frequencyButtons}>
+          {clientTypes.map((type) => (
+            <View key={type.value} style={styles.frequencyButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.frequencyButton,
+                  formData.client_type === type.value && styles.frequencyButtonActive,
+                  {
+                    backgroundColor:
+                      formData.client_type === type.value
+                        ? colorScheme === 'dark' ? 'rgba(113, 113, 122, 0.5)' : 'rgba(113, 113, 122, 0.4)'
+                        : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.15)',
+                    borderWidth: 1,
+                    borderColor: 
+                      formData.client_type === type.value
+                        ? colors.accent
+                        : colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                    backdropFilter: 'blur(20px)',
+                    shadowColor: formData.client_type === type.value ? colors.accent : 'transparent',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: formData.client_type === type.value ? 0.3 : 0,
+                    shadowRadius: 10,
+                    elevation: formData.client_type === type.value ? 5 : 0,
+                  },
+                ]}
+                onPress={() => setFormData({ ...formData, client_type: type.value as any })}
+              >
+                <ThemedText
+                  style={[
+                    styles.frequencyButtonText,
+                    formData.client_type === type.value && styles.frequencyButtonTextActive,
+                    {
+                      color:
+                        formData.client_type === type.value
+                          ? '#fff'
+                          : colorScheme === 'dark' ? '#ffffff' : '#000000',
+                      opacity: formData.client_type === type.value ? 1 : 0.9,
+                    },
+                  ]}
+                >
+                  {type.label}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <ThemedText style={[styles.label, { color: colors.text }]}>
+          Follow-up Frequency
         </ThemedText>
         <View style={styles.frequencyButtons}>
           {frequencies.map((freq) => (
